@@ -2,4 +2,4 @@
 from pathlib import Path
 
 # used to generalize data im- & exports
-PROJECT_ROOT = Path(__file__).parents[0]
+PROJECT_ROOT = Path(__file__).parents[1]
