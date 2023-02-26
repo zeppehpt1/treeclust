@@ -2,14 +2,17 @@ import geopandas as gpd
 import shapely.wkt
 import rasterio
 import json
+import numpy as np
 from rasterio.mask import mask
 from geopandas import GeoDataFrame
 from shapely import geometry
 from math import sin, cos, radians
 from pathlib import Path
+from typing import Union
 
 # TODO: actually next step
 # TODO: Remove original crown file from other repo
+# TODO: clean up functions and align them to coding convention PEP
 
 def get_centroid(polygon):
     centroid_str = polygon.centroid.wkt
@@ -35,7 +38,6 @@ def make_shapely_points(points):
     return [geometry.Point(point) for point in points]
 
 def get_inner_square_corner_coordinates_from_polygon(step_size,polygon):
-    
     result_points = []
     square_size = 70 # has enough buffer and suitable for all crowns
     centroid = get_centroid(polygon)
@@ -50,12 +52,10 @@ def get_inner_square_corner_coordinates_from_polygon(step_size,polygon):
             square_size -= step_size
             
 def points_to_polygon(points):
-    
     polygon_list = make_shapely_points(points)
     return geometry.Polygon([[p.x, p.y] for p in polygon_list])
 
 def visualize_two_polygons(first_polygon,second_polygon):
-    
     poly_gdf = gpd.GeoDataFrame({"id": [1,2], "geometry": [first_polygon,second_polygon]}, geometry="geometry")
     poly_gdf.plot(facecolor="None", edgecolor="red")
     
@@ -63,23 +63,42 @@ def get_geo_features(gdf:GeoDataFrame) -> json:
     """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
     return [json.loads(gdf.to_json())['features'][0]['geometry']]
 
-def clip_crown_from_raster(img_path:str,polygon,out_file_suffix:str):
-    
+def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon,out_file_suffix:str):
     # TODO: Solve annoying crs init warning
     # TODO: Adjust Path
     
-    out_dir = Path(img_path).parent.parent / Path(img_path.split('_')[0] + '_clipped_raster_files')
-    Path(out_dir).mkdir(parents=True, exist_ok=True)
-    output_path = out_dir / Path(str(Path(img_path).stem) + out_file_suffix)
+    # TODO: remove or add extra functionality, in dev right now
+    # get ground truth of ortho mask (labeled schiefer)
+    ortho_mask_data = rasterio.open(ortho_mask_tif)
+    epsg = int(str(ortho_mask_data.crs).split(':')[1])
+    # rasterio wants coordinates as a geodata geojson format for parsing
+    geo = gpd.GeoDataFrame({'geometry':polygon},index=[0],crs=epsg)
+    geo = geo.to_crs(crs=ortho_mask_data.crs.data)
+    coords = get_geo_features(geo)
+    # define output params
+    ortho_mask_out, out_transform = mask(ortho_mask_data,shapes=coords,crop=True)
+    out_meta = ortho_mask_data.meta.copy()
+    out_meta.update({
+        "driver":"PNG",
+        "height": ortho_mask_out.shape[1],
+        "width": ortho_mask_out.shape[2],
+        "transform": out_transform,
+        "crs":epsg
+    })
+    #highest pixel count (excluding black pixels) of ground truth area
+    # TODO: Extra function
+    data_array = ortho_mask_out
+    pixel, n_of_pixels = np.unique(data_array, return_counts=True)
+    highest_pixel_value = pixel[np.argsort(-n_of_pixels)]
     
+    # get original polygon mask
     data = rasterio.open(img_path)
     epsg = int(str(data.crs).split(':')[1])
-    
     # rasterio wants coordinates as a geodata geojson format for parsing
     geo = gpd.GeoDataFrame({'geometry':polygon},index=[0],crs=epsg)
     geo = geo.to_crs(crs=data.crs.data)
     coords = get_geo_features(geo)
-    
+    # define output params
     out_img, out_transform = mask(data,shapes=coords,crop=True)
     out_meta = data.meta.copy()
     out_meta.update({
@@ -89,26 +108,39 @@ def clip_crown_from_raster(img_path:str,polygon,out_file_suffix:str):
         "transform": out_transform,
         "crs":epsg
     })
-    # saving poly clip
+    
+    # saving poly clip and attatch highest pixel count value to filename
+    out_dir = Path(img_path).parent.parent.parent / Path(str(img_path).split('_')[0] + '_clipped_raster_files')
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    output_path = out_dir / Path(str(Path(img_path).stem) + out_file_suffix + str(highest_pixel_value[0]) + '.png')
     with rasterio.open(output_path,"w",**out_meta) as dest:
         dest.write(out_img)
 
-def clip_multiple_crowns_from_raster(img_path,crowns:GeoDataFrame,make_squares=False):
+def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFrame, make_squares=False, step_size=1):
+    """Create multiple png files of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon.
+
+    Args:
+        img_path (Union[str,Path]): Path to image
+        crowns (GeoDataFrame): 'geometry' column with polygons
+        make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
+        step_size: Defaults to 1. Affects only inner square polygons.
+    """
+    
+    ortho_mask_path = '/home/richard/bakim/data/Schiefer/roh/masks/CFB184_ortho_mask_byte.tif'
+    assert Path(ortho_mask_path).exists()
     
     if make_squares == True:
-        crowns = get_gdf_with_inner_square_polygons
-    
+        crowns = get_gdf_with_inner_square_polygons(crowns,step_size)
     for index in range(len(crowns['geometry'])):
-        file_suffix = '_{0:0>4}.png'.format(index)
-        clip_crown_from_raster(img_path,crowns['geometry'][index],file_suffix)
+        file_suffix = '_mask_{0:0>4}_'.format(index)
+        clip_crown_from_raster(img_path, ortho_mask_path, crowns['geometry'][index],file_suffix)
 
 def get_gdf_with_inner_square_polygons(crowns:GeoDataFrame,step_size=1) -> GeoDataFrame:
-    
     crowns['rec_poly'] = [get_inner_square_corner_coordinates_from_polygon(step_size,polygon) for polygon in crowns['geometry']]
     crowns['rec_poly'] = [points_to_polygon(rec_points) for rec_points in crowns['rec_poly']]
     crowns = crowns.drop(columns='geometry')
     crowns = crowns.rename(columns={"rec_poly":"geometry"})
     return crowns
-    
+
 if __name__ == "__main__":
     print("write a test case or something")
