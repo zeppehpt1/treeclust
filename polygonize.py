@@ -3,16 +3,37 @@ import shapely.wkt
 import rasterio
 import json
 import numpy as np
+import os
 from rasterio.mask import mask
 from geopandas import GeoDataFrame
 from shapely import geometry
 from math import sin, cos, radians
 from pathlib import Path
 from typing import Union
+from tqdm import tqdm
 
 # TODO: actually next step
 # TODO: Remove original crown file from other repo
 # TODO: clean up functions and align them to coding convention PEP
+
+
+def highest_pixel_count(img_array):
+    pixel, n_of_pixels = np.unique(img_array, return_counts=True)
+    highest_pixel_value = pixel[np.argsort(-n_of_pixels)]
+    if highest_pixel_value[0] == 0 and len(highest_pixel_value) == 1:
+        return 9999
+    index = 0
+    forbidden_values = {0,1,2}
+    while True:
+        if highest_pixel_value[index] not in forbidden_values:
+            return highest_pixel_value[index]
+        index += 1
+
+def remove_images_outside_of_gt_area(files):
+    for path in files:
+        number = path.stem.split('_')[5]
+        if number == 9999:
+            os.remove(path)
 
 def get_centroid(polygon):
     centroid_str = polygon.centroid.wkt
@@ -63,6 +84,11 @@ def get_geo_features(gdf:GeoDataFrame) -> json:
     """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
     return [json.loads(gdf.to_json())['features'][0]['geometry']]
 
+def remove_none_rows(gdf):
+    gdf = gdf.replace(to_replace='None', value=np.nan).dropna()
+    gdf = gdf.reset_index(drop=True)
+    return gdf
+
 def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon,out_file_suffix:str):
     # TODO: Solve annoying crs init warning
     # TODO: Adjust Path
@@ -73,7 +99,7 @@ def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon,out_file_su
     epsg = int(str(ortho_mask_data.crs).split(':')[1])
     # rasterio wants coordinates as a geodata geojson format for parsing
     geo = gpd.GeoDataFrame({'geometry':polygon},index=[0],crs=epsg)
-    geo = geo.to_crs(crs=ortho_mask_data.crs.data)
+    geo = geo.to_crs(epsg=epsg)
     coords = get_geo_features(geo)
     # define output params
     ortho_mask_out, out_transform = mask(ortho_mask_data,shapes=coords,crop=True)
@@ -86,17 +112,18 @@ def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon,out_file_su
         "crs":epsg
     })
     #highest pixel count (excluding black pixels) of ground truth area
-    # TODO: Extra function
     data_array = ortho_mask_out
-    pixel, n_of_pixels = np.unique(data_array, return_counts=True)
-    highest_pixel_value = pixel[np.argsort(-n_of_pixels)]
+    highest_pixel_value = highest_pixel_count(data_array) # ensures to discard black and white majority of pixels
+    # check for polygons outside of ground truth area
+    if highest_pixel_value == 9999:
+        return
     
     # get original polygon mask
     data = rasterio.open(img_path)
     epsg = int(str(data.crs).split(':')[1])
     # rasterio wants coordinates as a geodata geojson format for parsing
     geo = gpd.GeoDataFrame({'geometry':polygon},index=[0],crs=epsg)
-    geo = geo.to_crs(crs=data.crs.data)
+    geo = geo.to_crs(epsg=epsg)
     coords = get_geo_features(geo)
     # define output params
     out_img, out_transform = mask(data,shapes=coords,crop=True)
@@ -112,11 +139,11 @@ def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon,out_file_su
     # saving poly clip and attatch highest pixel count value to filename
     out_dir = Path(img_path).parent.parent.parent / Path(str(img_path).split('_')[0] + '_clipped_raster_files')
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    output_path = out_dir / Path(str(Path(img_path).stem) + out_file_suffix + str(highest_pixel_value[0]) + '.png')
+    output_path = out_dir / Path(str(Path(img_path).stem) + out_file_suffix + str(highest_pixel_value) + '.png')
     with rasterio.open(output_path,"w",**out_meta) as dest:
         dest.write(out_img)
 
-def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFrame, make_squares=False, step_size=1):
+def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFrame, make_squares=False, step_size=0.5):
     """Create multiple png files of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon.
 
     Args:
@@ -131,12 +158,14 @@ def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFra
     
     if make_squares == True:
         crowns = get_gdf_with_inner_square_polygons(crowns,step_size)
-    for index in range(len(crowns['geometry'])):
+    for index in (pbar := tqdm(range(len(crowns['geometry'])), leave=False)):
+        pbar.set_description(f"Processing number {index}")
         file_suffix = '_mask_{0:0>4}_'.format(index)
         clip_crown_from_raster(img_path, ortho_mask_path, crowns['geometry'][index],file_suffix)
 
 def get_gdf_with_inner_square_polygons(crowns:GeoDataFrame,step_size=1) -> GeoDataFrame:
     crowns['rec_poly'] = [get_inner_square_corner_coordinates_from_polygon(step_size,polygon) for polygon in crowns['geometry']]
+    crowns = remove_none_rows(crowns) # very small squares
     crowns['rec_poly'] = [points_to_polygon(rec_points) for rec_points in crowns['rec_poly']]
     crowns = crowns.drop(columns='geometry')
     crowns = crowns.rename(columns={"rec_poly":"geometry"})
