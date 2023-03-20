@@ -4,6 +4,7 @@ import rasterio
 import json
 import numpy as np
 import os
+import glob
 from rasterio.mask import mask
 from geopandas import GeoDataFrame
 from shapely import geometry
@@ -16,17 +17,18 @@ from tqdm import tqdm
 # TODO: Remove original crown file from other repo
 # TODO: clean up functions and align them to coding convention PEP
 
-
 def highest_pixel_count(img_array):
     pixel, n_of_pixels = np.unique(img_array, return_counts=True)
     highest_pixel_value = pixel[np.argsort(-n_of_pixels)]
     if highest_pixel_value[0] == 0 and len(highest_pixel_value) == 1:
         return 9999
     index = 0
-    forbidden_values = {0,1,2}
+    forbidden_values = {0,1,2,9} # discard forest floor as well
     while True:
         if highest_pixel_value[index] not in forbidden_values:
             return highest_pixel_value[index]
+        elif 0 <= index < len(highest_pixel_value):
+            return 9999
         index += 1
 
 def remove_images_outside_of_gt_area(files):
@@ -114,7 +116,7 @@ def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon,out_file_su
     #highest pixel count (excluding black pixels) of ground truth area
     data_array = ortho_mask_out
     highest_pixel_value = highest_pixel_count(data_array) # ensures to discard black and white majority of pixels
-    # check for polygons outside of ground truth area
+    # check for polygons outside of ground truth area and invalid ones (black, white and forest floor pixels are discarded)
     if highest_pixel_value == 9999:
         return
     
@@ -143,16 +145,15 @@ def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon,out_file_su
     with rasterio.open(output_path,"w",**out_meta) as dest:
         dest.write(out_img)
 
-def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFrame, make_squares=False, step_size=0.5):
+def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFrame, make_squares, step_size):
     """Create multiple png files of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon.
 
     Args:
         img_path (Union[str,Path]): Path to image
         crowns (GeoDataFrame): 'geometry' column with polygons
         make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
-        step_size: Defaults to 1. Affects only inner square polygons.
+        step_size: Defaults to 0.5. Affects only inner square polygons.
     """
-    
     ortho_mask_path = '/home/richard/bakim/data/Schiefer/roh/masks/CFB184_ortho_mask_byte.tif'
     assert Path(ortho_mask_path).exists()
     
@@ -162,7 +163,56 @@ def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFra
         pbar.set_description(f"Processing number {index}")
         file_suffix = '_mask_{0:0>4}_'.format(index)
         clip_crown_from_raster(img_path, ortho_mask_path, crowns['geometry'][index],file_suffix)
+        
+def clip_crowns_with_gt_mask(img_path: Union[str, Path], crowns: GeoDataFrame, mask_path: Union[str, Path], make_squares, step_size):
+    """Create multiple png files of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon. Includes the ground truth value of the provided mask image for analysis.
 
+    Args:
+        img_path (Union[str,Path]): Path to image
+        crowns (GeoDataFrame): 'geometry' column with polygons
+        mask_path (Union[str,Path]): Path to mask image
+        make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
+        step_size: Defaults to 0.5. Affects only inner square polygons.
+    """
+    
+    if make_squares == True:
+        crowns = get_gdf_with_inner_square_polygons(crowns,step_size)
+    for index in (pbar := tqdm(range(len(crowns['geometry'])), leave=False)):
+        pbar.set_description(f"Processing number {index}")
+        file_suffix = '_mask_{0:0>4}_'.format(index)
+        clip_crown_from_raster(img_path, mask_path, crowns['geometry'][index],file_suffix)
+
+def clip_crown_sets_with_gt_masks(imgs_dir: Union[str, Path], crown_dir, mask_dir: Union[str, Path], make_squares, step_size):
+    
+    img_files = glob.glob(imgs_dir + '/*.tif')
+    crown_files = glob.glob(crown_dir + '/*.gpkg')
+    mask_files = glob.glob(mask_dir + '/*.tif')
+    
+    [folder.sort() for folder in [img_files, crown_files, mask_files]]
+    
+    assert len(img_files) == len(crown_files) == len(mask_files)
+    
+    make_squares = make_squares
+    step_size = step_size
+    for img, crown_file, mask in zip(img_files, crown_files, mask_files):
+        crowns = gpd.read_file(crown_file)
+        clip_crowns_with_gt_mask(img, crowns, mask, make_squares, step_size)
+    
+    # combine clipped imgs into one folder
+    # call comb function
+    # already combines all into one folder...
+
+def combine_clipped_crowns(clipped_crowns_dir):
+    
+    clipped_crown_sets = glob.glob(clipped_crowns_dir + '/CFB*')
+    all_clipped_crowns_dir = clipped_crowns_dir.parent / 'all_crowns'
+    Path(all_clipped_crowns_dir).mkdir(parents=True, exist_ok=True)
+    print(all_clipped_crowns_dir)
+    
+    clipped_crown_files = [glob.glob(clipped_set + '/*.png') for clipped_set in clipped_crown_sets]
+    print(len(clipped_crown_files))
+
+    
 def get_gdf_with_inner_square_polygons(crowns:GeoDataFrame,step_size=1) -> GeoDataFrame:
     crowns['rec_poly'] = [get_inner_square_corner_coordinates_from_polygon(step_size,polygon) for polygon in crowns['geometry']]
     crowns = remove_none_rows(crowns) # very small squares
