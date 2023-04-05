@@ -1,6 +1,5 @@
 import geopandas as gpd
 from geopandas import GeoDataFrame
-import polygonize
 import shapely.wkt
 import rasterio
 import json
@@ -167,7 +166,7 @@ def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFra
     for index in (pbar := tqdm(range(len(crowns['geometry'])), leave=False)):
         pbar.set_description(f"Processing number {index}")
         file_suffix = '_mask_{0:0>4}_'.format(index)
-        clip_crown_from_raster(img_path, ortho_mask_path, crowns['geometry'][index],file_suffix)
+        clip_crown_from_raster(img_path, ortho_mask_path, crowns['geometry'][index],file_suffix, make_squares)
         
 def clip_crowns_with_gt_mask(img_path: Union[str, Path], crowns: GeoDataFrame, mask_path: Union[str, Path], make_squares, step_size):
     """Create multiple png files of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon. Includes the ground truth value of the provided mask image for analysis.
@@ -185,15 +184,15 @@ def clip_crowns_with_gt_mask(img_path: Union[str, Path], crowns: GeoDataFrame, m
     for index in (pbar := tqdm(range(len(crowns['geometry'])), leave=False)):
         pbar.set_description(f"Processing number {index}")
         file_suffix = '_mask_{0:0>4}_'.format(index)
-        clip_crown_from_raster(img_path, mask_path, crowns['geometry'][index],file_suffix)
+        clip_crown_from_raster(img_path, mask_path, crowns['geometry'][index],file_suffix, make_squares)
 
 def clip_crown_sets_with_gt_masks(imgs_dir: Union[str, Path], crown_dir, mask_dir: Union[str, Path], make_squares, step_size):
     """Creates multiple png file sets of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon. Includes the ground truth value of the provided mask image for analysis.
 
     Args:
-        img_path (Union[str,Path]): Path to image
-        crowns (GeoDataFrame): 'geometry' column with polygons
-        mask_path (Union[str,Path]): Path to mask image
+        imgs_dir (Union[str,Path]): Path to image folder
+        crown_dir: Path to crown folder
+        mask_dir (Union[str,Path]): Path to mask folder
         make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
         step_size: Defaults to 0.5. Affects only inner square polygons when make_squares is set to TRUE.
     """
@@ -211,10 +210,6 @@ def clip_crown_sets_with_gt_masks(imgs_dir: Union[str, Path], crown_dir, mask_di
     for img, crown_file, mask in zip(img_files, crown_files, mask_files):
         crowns = gpd.read_file(crown_file)
         clip_crowns_with_gt_mask(img, crowns, mask, make_squares, step_size)
-    
-    # combine clipped imgs into one folder
-    # call comb function
-    # already combines all into one folder...
 
 def combine_clipped_crowns(clipped_crowns_dir):
     

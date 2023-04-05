@@ -6,6 +6,7 @@ import numpy as np
 import glob
 import cv2
 import tqdm
+import os
 from cv2 import normalize
 from skimage.restoration import denoise_tv_chambolle
 
@@ -39,7 +40,6 @@ def pil_resize(img, expected_size):
 
 def get_png_file_names(file_dir):
     files = glob.glob(file_dir + '/*.png')
-    print("num files",len(files))
     return files
 
 def normalize_img(img_arr):
@@ -64,43 +64,50 @@ def check_alpha_channel(img_arr):
 def preprocess_images(images_path, resize:str, expected_size:int, square:bool, set_clahe:bool, set_denoising:bool, set_blur:bool):
     file_list = get_png_file_names(images_path)
     shape = 'polygon'
-    if square:
-        shape = 'square'
-    for img in (pbar := tqdm.tqdm(file_list)):
-        pbar.set_description(f"Processing {img}")
-        file_name = Path(img).stem
-        img = cv2.imread(img) # loads image in BGR order!
-        #img = plt.imread(img) # loads image in RGB order
-        # remove alpha if image has alpha
-        if img.shape[2] == 4:
-            img = img[:,:,:3]
-        # normalize brightness CLAHE
-        if set_clahe:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = skie.equalize_adapthist(img)
-            # normalize pixel values to range 0-255
-            img = normalize_img(img)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        # denoise image
-        if set_denoising:
-            img = cv2.fastNlMeansDenoisingColored(img, None, 10,10,7,21) # increases processing time!
-        if set_blur:
-            img = denoise_tv_chambolle(img, weight=0.1, channel_axis=-1)
-        # array to img
-        PIL_image = Image.fromarray((img).astype(np.uint8)) # if normalized
-        # resize
-        if resize == 'padding':
-            PIL_image = resize_with_padding(PIL_image,(expected_size,expected_size))
-        elif resize == 'stretch':
-            PIL_image = PIL_image.resize((expected_size, expected_size))
-        enhancements = ''
-        if set_clahe and set_denoising:
-            enhancements = '_clahe_denoising_'
-        elif set_clahe:
-            enhancements = '_clahe_'
-        elif set_denoising:
-            enhancements = '_denoising_'
-        out_dir = Path(images_path).parent / Path('preprocessed_' + str(expected_size) + enhancements + '_clipped_pred_' + shape + '_' + str(len(file_list)))
+    enhancements = ''
+    if set_clahe and set_denoising:
+        enhancements = '_clahe-denoising'
+    elif set_clahe:
+        enhancements = '_clahe'
+    elif set_denoising:
+        enhancements = '_denoising'
+    # create dir
+    out_dir = Path(images_path).parent / Path('preprocessed_' + str(expected_size) + enhancements + '_clipped_pred_' + shape + '_' + str(len(file_list)))
+    if os.path.isdir(out_dir) == False:
         Path(out_dir).mkdir(parents=True, exist_ok=True)
-        PIL_image.save(str(out_dir) + '/' + str(file_name) + '_preprocessed' + '.png')
-    return out_dir
+        if square:
+            shape = 'square'
+        for img in (pbar := tqdm.tqdm(file_list)):
+            pbar.set_description(f"Processing {img}")
+            file_name = Path(img).stem
+            img = cv2.imread(img) # loads image in BGR order!
+            #img = plt.imread(img) # loads image in RGB order
+            # remove alpha if image has alpha
+            if img.shape[2] == 4:
+                img = img[:,:,:3]
+            # normalize brightness CLAHE
+            if set_clahe:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img = skie.equalize_adapthist(img)
+                # normalize pixel values to range 0-255
+                img = normalize_img(img)
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            # denoise image
+            if set_denoising:
+                img = cv2.fastNlMeansDenoisingColored(img, None, 10,10,7,21) # increases processing time!
+            if set_blur:
+                img = denoise_tv_chambolle(img, weight=0.1, channel_axis=-1)
+            # array to img
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            PIL_image = Image.fromarray((img).astype(np.uint8)) # if normalized
+            # resize
+            if resize == 'padding':
+                PIL_image = resize_with_padding(PIL_image,(expected_size,expected_size))
+            elif resize == 'stretch':
+                PIL_image = PIL_image.resize((expected_size, expected_size))
+            
+            
+            PIL_image.save(str(out_dir) + '/' + str(file_name) + '_preprocessed' + '.png')
+        return out_dir
+    else:
+        return out_dir
