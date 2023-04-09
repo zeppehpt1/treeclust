@@ -39,23 +39,25 @@ def load_images_as_tensors(files, image_size):
     image_tensors = [alter_image(image, image_size) for image in files]
     return image_tensors
 
-def extract_numeric_labels(files): return [filename.stem.split('_')[4] for filename in files]
+def extract_numeric_labels(files): return [filename.stem.split('_')[5] for filename in files]
+# mabye adjust number position in filename!
 
 def convert_number_to_str(labels):
     update = {
     '4':'Fagus_sylvatica',
-    '5':'Fraxinus_excelsior',
-    '6':'Quercus_spec',
+    #'5':'Fraxinus_excelsior',
+    #'6':'Quercus_spec',
     '8':'deadwood',
     '10':'Abies_alba',
-    '11':'Larix_decidua',
+    #'11':'Larix_decidua',
     '12':'Picea_abies',
-    '13':'Pinus_sylvestris',
-    '14':'Pseudotsuga_menziesii'
+    #'13':'Pinus_sylvestris',
+    #'14':'Pseudotsuga_menziesii'
     }
     updated_labels = (pd.Series(labels)).map(update)
     species_labels = list(updated_labels)
     return species_labels
+# adjust species according to analyzed sites
 
 def encode_labels(labels):
     le = lt.CustomLabelEncoder()
@@ -177,19 +179,19 @@ def create_and_save_le_encodings(cnn:str, preprocessed_fp:str, site_folder:str):
     if os.path.isfile(features_path) == False:
         files = load_files(preprocessed_fp)
         labels = extract_numeric_labels(files)
+        labels = convert_number_to_str(labels)
         le = encode_labels(labels)
         features = extract_encodings(cnn, files)
         
         # save le
         le_dir = site_folder + '/label_encodings/'
         Path(le_dir).mkdir(parents=True, exist_ok=True)
-        le_path = le_dir + cnn + '_label_encodings.pickle'
+        le_path = le_dir + cnn + '_' + str(preprocessed_fp).split('_')[2] + '_label_encodings.pickle'
         save_le(le, le_path)
         
         # save encoding
         save_encodings(files, features, labels, features_path)
         return le_path, features_path
-
     return
 
 if __name__ == "__main__":

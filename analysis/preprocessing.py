@@ -110,4 +110,5 @@ def preprocess_images(images_path, resize:str, expected_size:int, square:bool, s
             PIL_image.save(str(out_dir) + '/' + str(file_name) + '_preprocessed' + '.png')
         return out_dir
     else:
+        print('Skip preprocessing of images')
         return out_dir
