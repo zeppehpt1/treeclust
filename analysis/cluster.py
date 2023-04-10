@@ -30,6 +30,8 @@ import umap as up
 import statsmodels.api as sm
 from scipy.stats import shapiro, kstest, normaltest, anderson
 
+from prepare import RANDOM_SEED
+
 import label_tools as lt
 
 def load_features(features_path):
@@ -56,33 +58,34 @@ def load_all_data(features_path, le_path):
     return files, features, labels, y_gt
     
 def pca(features):
-    pca = PCA(n_components=0.85, svd_solver='full', random_state=42, whiten=True)
+    pca = PCA(n_components=0.85, svd_solver='full', whiten=True)
     pca.fit(features)
     reduced = pca.fit_transform(features)
     return reduced
 
+# !!! no randomseed!
 def umap(features):
-    reducer = up.UMAP(n_components=2, metric='cosine', random_state=666)
+    reducer = up.UMAP(n_components=2, metric='cosine')
     reduced = reducer.fit_transform(features)
     return reduced
 
 def tsne(features):
     # no whitening
-    pca_nw = PCA(n_components=50, svd_solver='full', whiten=False, random_state=42)
+    pca_nw = PCA(n_components=50, svd_solver='full', whiten=False, random_state=RANDOM_SEED)
     x_nw = pca_nw.fit_transform(features)
-    tsne = TSNE(n_components=2, random_state=567)
+    tsne = TSNE(n_components=2, random_state=RANDOM_SEED)
     x_nw_tsne = tsne.fit_transform(x_nw)
     #with withening
-    pca = PCA(n_components=50, svd_solver='full', whiten=True, random_state=42)
+    pca = PCA(n_components=50, svd_solver='full', whiten=True, random_state=RANDOM_SEED)
     x = pca.fit_transform(features)
-    tsne_w = TSNE(n_components=2, random_state=567)
+    tsne_w = TSNE(n_components=2, random_state=RANDOM_SEED)
     x_w_tsne = tsne_w.fit_transform(x)
     return x_nw_tsne, x_w_tsne
 
 # determine number of k
 # TODO: create multiple settings, store results and use the value that has the majority suggestions
 def elbow_score(reduced_f): # distortion
-    kmean_model = KMeans(init='k-means++', random_state=42)
+    kmean_model = KMeans(init='k-means++', random_state=RANDOM_SEED)
     visualizer = KElbowVisualizer(kmean_model, k=(2, 15), timings= True)
     visualizer.fit(reduced_f)        # Fit data to visualizer
     return visualizer.elbow_value_
@@ -105,7 +108,7 @@ def kMeansRes(scaled_data, k, alpha_k=0.02):
     
     inertia_o = np.square((scaled_data - scaled_data.mean(axis=0))).sum()
     # fit k-means
-    kmeans = KMeans(n_init='auto',init='k-means++', n_clusters=k, random_state=0).fit(scaled_data)
+    kmeans = KMeans(n_init='auto',init='k-means++', n_clusters=k, random_state=RANDOM_SEED).fit(scaled_data)
     scaled_inertia = kmeans.inertia_ / inertia_o + alpha_k * k
     return scaled_inertia
 def chooseBestKforKMeansParallel(scaled_data, k_range):
@@ -144,13 +147,13 @@ def gap_statistic(reduced_f):
     return n_clusters
 
 def ch_index(reduced_f):
-    model = KMeans(init='k-means++', random_state=1)
+    model = KMeans(init='k-means++', random_state=RANDOM_SEED)
     visualizer = KElbowVisualizer(model, k=(2, 15), metric='calinski_harabasz', timings=True)
     visualizer.fit(reduced_f)
     return visualizer.elbow_value_
 
 def silhouette_score(reduced_f):
-    model = KMeans(init='k-means++', random_state=1)
+    model = KMeans(init='k-means++', random_state=RANDOM_SEED)
     visualizer = KElbowVisualizer(model, k=(2, 15), metric='silhouette', timings=True)
     visualizer.fit(reduced_f)
     return visualizer.elbow_value_
@@ -178,7 +181,7 @@ def determine_best_k(reduced_f):
     return optimal_k
 
 def mean_shift(reduced_f, labels, y_gt):
-    bandwidth = estimate_bandwidth(reduced_f, quantile=0.1, n_samples=500, random_state=444)
+    bandwidth = estimate_bandwidth(reduced_f, quantile=0.1, n_samples=500, random_state=RANDOM_SEED)
     model = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
@@ -190,7 +193,7 @@ def mean_shift(reduced_f, labels, y_gt):
     return y_pred, micro_f1_score, macro_f1_score, nmi
 
 def k_means(reduced_f, y_gt):
-    model = KMeans(n_clusters=4, init='k-means++', n_init=500, random_state=42)
+    model = KMeans(n_clusters=4, init='k-means++', n_init=500, random_state=RANDOM_SEED)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
@@ -238,5 +241,5 @@ def get_accuracy_value(y_gt, y_pred):
 
 if __name__ == "__main__":
     # test data
-    X, y = make_blobs(n_samples=80, centers=3, n_features=2, random_state=12)
+    X, y = make_blobs(n_samples=80, centers=3, n_features=2, random_state=RANDOM_SEED)
     print(determine_best_k(X))

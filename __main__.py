@@ -63,50 +63,53 @@ def main():
     nmi_scores = []
     mean_squared_erros = []
     
-    # 4. analysis
-    for encoding_file, le_file in zip(encoding_files, le_files):
-        print("enfile", encoding_file)
-        print("lefile", le_file)
-        files, features, labels, y_gt = cluster.load_all_data(encoding_file, le_file)
-        # dr
-        pca_reduced = cluster.pca(features)
-        umap_reduced = cluster.umap(features)
-        reduced_features = [pca_reduced, umap_reduced] # TODO separate function
-        dr_idents = ['pca', 'umap']
-        # name
-        used_preprocess = str(Path(encoding_file).stem).split('_')[1]
-        used_cnn = str(Path(encoding_file).stem).split('_')[0]
-        
-        for dr_features, dr_ident in zip(reduced_features, dr_idents):
-            if dr_ident == 'pca':
-                dr_ident = 'pca'
-            elif dr_ident == 'umap':
-                dr_ident = 'umap'
-            used_dr = dr_ident
+    # 5 runs
+    for run in range(0, 5):
+        run_ident = str(run)
+        # 4. analysis
+        for encoding_file, le_file in zip(encoding_files, le_files):
+            print("enfile", encoding_file)
+            print("lefile", le_file)
+            files, features, labels, y_gt = cluster.load_all_data(encoding_file, le_file)
+            # dr
+            pca_reduced = cluster.pca(features)
+            umap_reduced = cluster.umap(features)
+            reduced_features = [pca_reduced, umap_reduced] # TODO separate function
+            dr_idents = ['pca', 'umap']
+            # name
+            used_preprocess = str(Path(encoding_file).stem).split('_')[1]
+            used_cnn = str(Path(encoding_file).stem).split('_')[0]
             
-            used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores = cluster.run_cluster(dr_features, labels, y_gt)
-            for cl_alg, micro_f1_score, macro_f1_score, nmi_score in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores):
-                # append settings of the run to lists
-                preprocessing_types.append(used_preprocess)
-                cnns.append(used_cnn)
-                dr_techniques.append(used_dr)
-                cluster_techniques.append(cl_alg)
-                micro_f1_scores.append(micro_f1_score)
-                macro_f1_scores.append(macro_f1_score)
-                nmi_scores.append(nmi_score)
-    # save results in pd
-    dict = {'Preprocess': preprocessing_types,
-               'CNN': cnns,
-               'DR': dr_techniques,
-               'Clustering': cluster_techniques,
-               'Micro F1-Score': micro_f1_scores,
-               'Macro F1-Score': macro_f1_scores,
-               'NMI': nmi_scores}
-    df = pd.DataFrame(dict)
-    result_dir = Path(site_folder + 'results')
-    Path(result_dir).mkdir(parents=True, exist_ok=True)
-    result_filename = 'Schiefer_analysis.csv'
-    df.to_csv(result_dir / result_filename, index=False)
+            for dr_features, dr_ident in zip(reduced_features, dr_idents):
+                if dr_ident == 'pca':
+                    dr_ident = 'pca'
+                elif dr_ident == 'umap':
+                    dr_ident = 'umap'
+                used_dr = dr_ident
+                
+                used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores = cluster.run_cluster(dr_features, labels, y_gt)
+                for cl_alg, micro_f1_score, macro_f1_score, nmi_score in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores):
+                    # append settings of the run to lists
+                    preprocessing_types.append(used_preprocess)
+                    cnns.append(used_cnn)
+                    dr_techniques.append(used_dr)
+                    cluster_techniques.append(cl_alg)
+                    micro_f1_scores.append(micro_f1_score)
+                    macro_f1_scores.append(macro_f1_score)
+                    nmi_scores.append(nmi_score)
+        # save results in pd
+        dict = {'Preprocess': preprocessing_types,
+                'CNN': cnns,
+                'DR': dr_techniques,
+                'Clustering': cluster_techniques,
+                'Micro F1-Score': micro_f1_scores,
+                'Macro F1-Score': macro_f1_scores,
+                'NMI': nmi_scores}
+        df = pd.DataFrame(dict)
+        result_dir = Path(site_folder + 'results')
+        Path(result_dir).mkdir(parents=True, exist_ok=True)
+        result_filename = run_ident + '_Schiefer_analysis.csv'
+        df.to_csv(result_dir / result_filename, index=False)
 
 if __name__ == "__main__":
     main()

@@ -12,10 +12,14 @@ from math import sin, cos, radians
 from pathlib import Path
 from typing import Union
 from tqdm import tqdm
+from typing import final
 
 # TODO: actually next step
 # TODO: Remove original crown file from other repo
 # TODO: clean up functions and align them to coding convention PEP
+
+# define random seed constant
+RANDOM_SEED: final = 8172635
 
 def highest_pixel_count(img_array):
     pixel, n_of_pixels = np.unique(img_array, return_counts=True)
