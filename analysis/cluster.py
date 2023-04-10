@@ -30,7 +30,7 @@ import umap as up
 import statsmodels.api as sm
 from scipy.stats import shapiro, kstest, normaltest, anderson
 
-from prepare import RANDOM_SEED
+from .constants import RANDOM_SEED
 
 import label_tools as lt
 

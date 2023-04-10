@@ -16,7 +16,7 @@ import pandas as pd
 from glob import glob
 from tqdm import tqdm
 
-from prepare import RANDOM_SEED
+from .constants import RANDOM_SEED
 
 from analysis import label_tools as lt
 

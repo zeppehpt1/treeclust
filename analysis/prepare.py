@@ -18,9 +18,6 @@ from typing import final
 # TODO: Remove original crown file from other repo
 # TODO: clean up functions and align them to coding convention PEP
 
-# define random seed constant
-RANDOM_SEED: final = 8172635
-
 def highest_pixel_count(img_array):
     pixel, n_of_pixels = np.unique(img_array, return_counts=True)
     highest_pixel_value = pixel[np.argsort(-n_of_pixels)]

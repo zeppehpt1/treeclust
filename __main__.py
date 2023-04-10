@@ -53,18 +53,18 @@ def main():
     encoding_files = sorted(encoding_dir_path.glob('*.pickle'))
     le_files = sorted(le_dir_path.glob('*.pickle'))
     
-    # define lists for pickle dump
-    preprocessing_types = []
-    cnns = []
-    dr_techniques = []
-    cluster_techniques = []
-    micro_f1_scores = []
-    macro_f1_scores = []
-    nmi_scores = []
-    mean_squared_erros = []
-    
     # 5 runs
+    # implement tqdm
     for run in range(0, 5):
+        # define lists for pickle dump
+        preprocessing_types = []
+        cnns = []
+        dr_techniques = []
+        cluster_techniques = []
+        micro_f1_scores = []
+        macro_f1_scores = []
+        nmi_scores = []
+        mean_squared_erros = []
         run_ident = str(run)
         # 4. analysis
         for encoding_file, le_file in zip(encoding_files, le_files):
@@ -98,18 +98,19 @@ def main():
                     macro_f1_scores.append(macro_f1_score)
                     nmi_scores.append(nmi_score)
         # save results in pd
-        dict = {'Preprocess': preprocessing_types,
+        results = {'Preprocess': preprocessing_types,
                 'CNN': cnns,
                 'DR': dr_techniques,
                 'Clustering': cluster_techniques,
                 'Micro F1-Score': micro_f1_scores,
                 'Macro F1-Score': macro_f1_scores,
                 'NMI': nmi_scores}
-        df = pd.DataFrame(dict)
+        df = pd.DataFrame(results)
         result_dir = Path(site_folder + 'results')
         Path(result_dir).mkdir(parents=True, exist_ok=True)
         result_filename = run_ident + '_Schiefer_analysis.csv'
         df.to_csv(result_dir / result_filename, index=False)
+        results = results.clear()
 
 if __name__ == "__main__":
     main()
