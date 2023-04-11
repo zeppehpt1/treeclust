@@ -26,13 +26,10 @@ from yellowbrick.cluster import KElbowVisualizer
 from gap_statistic import OptimalK
 from collections import Counter
 import umap as up
-
 import statsmodels.api as sm
 from scipy.stats import shapiro, kstest, normaltest, anderson
 
-from .constants import RANDOM_SEED
-
-import label_tools as lt
+from analysis import label_tools as lt
 
 def load_features(features_path):
     with open(features_path, 'rb') as f:
@@ -64,12 +61,12 @@ def pca(features):
     return reduced
 
 # !!! no randomseed!
-def umap(features):
-    reducer = up.UMAP(n_components=2, metric='cosine')
+def umap(features, RANDOM_SEED):
+    reducer = up.UMAP(n_components=2, metric='cosine', random_state=RANDOM_SEED)
     reduced = reducer.fit_transform(features)
     return reduced
 
-def tsne(features):
+def tsne(features, RANDOM_SEED):
     # no whitening
     pca_nw = PCA(n_components=50, svd_solver='full', whiten=False, random_state=RANDOM_SEED)
     x_nw = pca_nw.fit_transform(features)
@@ -82,9 +79,7 @@ def tsne(features):
     x_w_tsne = tsne_w.fit_transform(x)
     return x_nw_tsne, x_w_tsne
 
-# determine number of k
-# TODO: create multiple settings, store results and use the value that has the majority suggestions
-def elbow_score(reduced_f): # distortion
+def elbow_score(reduced_f, RANDOM_SEED): # distortion
     kmean_model = KMeans(init='k-means++', random_state=RANDOM_SEED)
     visualizer = KElbowVisualizer(kmean_model, k=(2, 15), timings= True)
     visualizer.fit(reduced_f)        # Fit data to visualizer
@@ -108,7 +103,7 @@ def kMeansRes(scaled_data, k, alpha_k=0.02):
     
     inertia_o = np.square((scaled_data - scaled_data.mean(axis=0))).sum()
     # fit k-means
-    kmeans = KMeans(n_init='auto',init='k-means++', n_clusters=k, random_state=RANDOM_SEED).fit(scaled_data)
+    kmeans = KMeans(n_init='auto',init='k-means++', n_clusters=k).fit(scaled_data)
     scaled_inertia = kmeans.inertia_ / inertia_o + alpha_k * k
     return scaled_inertia
 def chooseBestKforKMeansParallel(scaled_data, k_range):
@@ -146,13 +141,13 @@ def gap_statistic(reduced_f):
     n_clusters = optimalK(reduced_f, cluster_array=np.arange(2, 15))
     return n_clusters
 
-def ch_index(reduced_f):
+def ch_index(reduced_f, RANDOM_SEED):
     model = KMeans(init='k-means++', random_state=RANDOM_SEED)
     visualizer = KElbowVisualizer(model, k=(2, 15), metric='calinski_harabasz', timings=True)
     visualizer.fit(reduced_f)
     return visualizer.elbow_value_
 
-def silhouette_score(reduced_f):
+def silhouette_score(reduced_f, RANDOM_SEED):
     model = KMeans(init='k-means++', random_state=RANDOM_SEED)
     visualizer = KElbowVisualizer(model, k=(2, 15), metric='silhouette', timings=True)
     visualizer.fit(reduced_f)
@@ -180,7 +175,7 @@ def determine_best_k(reduced_f):
     optimal_k = most_common_elem(cluster_proposals)
     return optimal_k
 
-def mean_shift(reduced_f, labels, y_gt):
+def mean_shift(reduced_f, labels, y_gt, RANDOM_SEED):
     bandwidth = estimate_bandwidth(reduced_f, quantile=0.1, n_samples=500, random_state=RANDOM_SEED)
     model = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     model.fit(reduced_f)
@@ -193,7 +188,7 @@ def mean_shift(reduced_f, labels, y_gt):
     return y_pred, micro_f1_score, macro_f1_score, nmi
 
 def k_means(reduced_f, y_gt):
-    model = KMeans(n_clusters=4, init='k-means++', n_init=500, random_state=RANDOM_SEED)
+    model = KMeans(n_clusters=4, init='k-means++', n_init=500)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
@@ -208,30 +203,38 @@ def agglo_cl(reduced_f, y_gt):
     micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
     return y_pred, micro_f1_score, macro_f1_score, nmi
 
-def run_cluster(reduced_f, labels, y_gt):
+def run_cluster(reduced_f, labels, y_gt, RANDOM_SEED):
     cluster_techniques = []
     micro_f1_scores = []
     macro_f1_scores = []
     nmi_scores = []
-    ms_y_pred, ms_micro_f1_score, ms_macro_f1_score, ms_nmi = mean_shift(reduced_f, labels, y_gt)
+    y_pred_labels = []
+    ms_y_pred, ms_micro_f1_score, ms_macro_f1_score, ms_nmi = mean_shift(reduced_f, labels, y_gt, RANDOM_SEED)
     ms_ident_str = 'mean-shift'
     cluster_techniques.append(ms_ident_str)
     micro_f1_scores.append(ms_micro_f1_score)
     macro_f1_scores.append(ms_macro_f1_score)
     nmi_scores.append(ms_nmi)
+    print("MS LABELS", len(ms_y_pred))
+    y_pred_labels.append(ms_y_pred)
     km_y_pred, km_micro_f1_score, km_macro_f1_score, km_nmi = k_means(reduced_f, y_gt)
     km_ident_str = 'k-means++'
     cluster_techniques.append(km_ident_str)
     micro_f1_scores.append(km_micro_f1_score)
     macro_f1_scores.append(km_macro_f1_score)
     nmi_scores.append(km_nmi)
+    print("KM LABELS", len(km_y_pred))
+    y_pred_labels.append(km_y_pred)
     agglo_y_pred, agglo_micro_f1_score, agglo_macro_f1_score, agglo_nmi = k_means(reduced_f, y_gt)
     agglo_ident_str = 'agglo'
     cluster_techniques.append(agglo_ident_str)
     micro_f1_scores.append(agglo_micro_f1_score)
     macro_f1_scores.append(agglo_macro_f1_score)
+    print("AGGLO LABELS", len(agglo_y_pred))
     nmi_scores.append(agglo_nmi)
-    return cluster_techniques, micro_f1_scores, macro_f1_scores, nmi_scores
+    y_pred_labels.append(agglo_y_pred)
+    print("ALL pred LABELS", len(y_pred_labels))
+    return cluster_techniques, micro_f1_scores, macro_f1_scores, nmi_scores, y_pred_labels
 
 def get_accuracy_value(y_gt, y_pred):
     micro_f1_score = f1_score(y_gt, y_pred, average='micro')
@@ -241,5 +244,5 @@ def get_accuracy_value(y_gt, y_pred):
 
 if __name__ == "__main__":
     # test data
-    X, y = make_blobs(n_samples=80, centers=3, n_features=2, random_state=RANDOM_SEED)
+    X, y = make_blobs(n_samples=80, centers=3, n_features=2, random_state=12)
     print(determine_best_k(X))

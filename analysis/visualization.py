@@ -55,12 +55,12 @@ def pretty_cm(cm, labelnames, cscale=0.6, ax0=None, fs=5, cmap='cool'):
     
     ax.set_xticks(np.arange(n))
     ax.set_yticks(np.arange(n))
-    ax.set_xticklabels(labels=labelnames, minor=True, fontsize=fs)
+    ax.set_xticklabels(labels=labelnames, minor=True, fontsize=fs, rotation=90)
     ax.set_yticklabels(labels=reversed(labelnames), minor=True, fontsize=fs)
 
     ax.set_xlabel('Predicted Labels', fontsize=fs)
     ax.xaxis.set_label_position('bottom')
-    plt.xticks(rotation=90)
+    
     ax.set_ylabel('Actual Labels', fontsize=fs)
     for (i, j), z in np.ndenumerate(cm):
         ax.text(j + 0.5, n - i - 0.5, '{:^5}'.format(z), ha='center', va='center', fontsize=fs,
@@ -73,3 +73,16 @@ def pretty_cm(cm, labelnames, cscale=0.6, ax0=None, fs=5, cmap='cool'):
         return
     else:
         return ax
+    
+def pano_plot():
+    return
+
+def tsne_plot():
+    return
+
+def pred_and_gt_plot():
+    return
+
+def cm_plot():
+    CM = confusion_matrix()
+    pretty_cm(CM, labels_ordered)

@@ -12,7 +12,6 @@ from skimage.restoration import denoise_tv_chambolle
 
 from pathlib import Path
 from PIL import Image,ImageOps
-from pylab import imshow
 
 def padding(img, expected_size):
     desired_size = expected_size
@@ -105,10 +104,9 @@ def preprocess_images(images_path, resize:str, expected_size:int, square:bool, s
                 PIL_image = resize_with_padding(PIL_image,(expected_size,expected_size))
             elif resize == 'stretch':
                 PIL_image = PIL_image.resize((expected_size, expected_size))
-            
-            
+            # save img
             PIL_image.save(str(out_dir) + '/' + str(file_name) + '_preprocessed' + '.png')
         return out_dir
     else:
-        print('Skip preprocessing of images')
+        print(enhancements + ' processed files already exists')
         return out_dir

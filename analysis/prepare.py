@@ -1,21 +1,18 @@
 import geopandas as gpd
-from geopandas import GeoDataFrame
 import shapely.wkt
 import rasterio
 import json
 import numpy as np
 import os
 import glob
+from geopandas import GeoDataFrame
 from rasterio.mask import mask
 from shapely import geometry
 from math import sin, cos, radians
 from pathlib import Path
 from typing import Union
 from tqdm import tqdm
-from typing import final
 
-# TODO: actually next step
-# TODO: Remove original crown file from other repo
 # TODO: clean up functions and align them to coding convention PEP
 
 def highest_pixel_count(img_array):
@@ -222,7 +219,6 @@ def combine_clipped_crowns(clipped_crowns_dir):
     clipped_crown_files = [glob.glob(clipped_set + '/*.png') for clipped_set in clipped_crown_sets]
     print(len(clipped_crown_files))
 
-    
 def get_gdf_with_inner_square_polygons(crowns:GeoDataFrame,step_size=1) -> GeoDataFrame:
     crowns['rec_poly'] = [get_inner_square_corner_coordinates_from_polygon(step_size,polygon) for polygon in crowns['geometry']]
     crowns = remove_none_rows(crowns) # very small squares

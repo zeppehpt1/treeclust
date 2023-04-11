@@ -16,13 +16,11 @@ import pandas as pd
 from glob import glob
 from tqdm import tqdm
 
-from .constants import RANDOM_SEED
-
 from analysis import label_tools as lt
 
 def load_files(preprocessed_fp:str):
     files = sorted(Path(preprocessed_fp).glob('*.png'))
-    randomizer = np.random.RandomState(seed=RANDOM_SEED)
+    randomizer = np.random.RandomState(seed=12)
     randomizer.shuffle(files)
     return files
 
