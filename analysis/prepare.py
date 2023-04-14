@@ -89,7 +89,7 @@ def remove_none_rows(gdf):
     gdf = gdf.reset_index(drop=True)
     return gdf
 
-def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon,out_file_suffix:str, make_squares:bool):
+def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon, out_file_suffix:str, make_squares:bool):
     # includes gt mask data
     # TODO: create a flag to switch between gt and no gt
     # TODO: Adjust Path
@@ -156,15 +156,13 @@ def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFra
         make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
         step_size: Defaults to 0.5. Affects only inner square polygons.
     """
-    ortho_mask_path = '/home/richard/bakim/data/Schiefer/roh/masks/CFB184_ortho_mask_byte.tif'
-    assert Path(ortho_mask_path).exists()
     
     if make_squares == True:
         crowns = get_gdf_with_inner_square_polygons(crowns,step_size)
     for index in (pbar := tqdm(range(len(crowns['geometry'])), leave=False)):
         pbar.set_description(f"Processing number {index}")
         file_suffix = '_mask_{0:0>4}_'.format(index)
-        clip_crown_from_raster(img_path, ortho_mask_path, crowns['geometry'][index],file_suffix, make_squares)
+        clip_crown_from_raster(img_path, crowns['geometry'][index],file_suffix, make_squares)
         
 def clip_crowns_with_gt_mask(img_path: Union[str, Path], crowns: GeoDataFrame, mask_path: Union[str, Path], make_squares, step_size):
     """Create multiple png files of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon. Includes the ground truth value of the provided mask image for analysis.
