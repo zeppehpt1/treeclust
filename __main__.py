@@ -16,7 +16,7 @@ from tqdm import tqdm
 def main():
     # define dataset paths folders, Schiefer or Stadtwald, probably multiple files for one site
     site_folder = '/home/richard/data/' + SITE + '/'
-    orthophoto_dir = site_folder + 'orthophotos'
+    orthophoto_dir = site_folder + 'ortho_tiles'
     gt_mask_dir = site_folder + 'gt_masks'
     prediction_dir = site_folder + 'predictions'
     # gt_annotations_dir = "" # optional
@@ -48,7 +48,7 @@ def main():
     second_set = preprocessing.preprocess_images(site_folder + 'pred_polygon_clipped_raster_files', None, None, False, True, False, False)
 
     # 3. feature extraction
-    cnns = ['vgg', 'resnet', 'effnet']
+    cnns = ['vgg', 'resnet', 'effnet', 'densenet', 'inception']
     encoding_files = sorted(encoding_dir.glob('*.pickle'))
     if len(encoding_files) != len(cnns) * 2:
         le_and_encoding_paths = []
@@ -61,7 +61,7 @@ def main():
         print("Encodings already exists")
     
     # 4. analysis
-    # 30 runs
+    # 5 runs
     final_res_name ='final' + '_' + SITE + '_' + 'analysis.csv'
     if os.path.exists(result_dir / final_res_name) == False:
         for RANDOM_SEED in (pbar := tqdm(RANDOM_SEEDS)):
@@ -76,6 +76,8 @@ def main():
             macro_f1_scores = []
             nmi_scores = []
             y_pred_label_sets = []
+            species_pred = []
+            #pred_cluster_numbers = []
             
             run_ident = str(RANDOM_SEEDS.index(RANDOM_SEED))
             encoding_files = sorted(encoding_dir.glob('*.pickle'))
@@ -98,8 +100,10 @@ def main():
                         dr_ident = 'umap'
                     used_dr = dr_ident
                     # cluser analysis
-                    used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores, aquired_y_pred_label_sets = cluster.run_cluster(dr_features, labels, y_gt, RANDOM_SEED)
-                    for cl_alg, micro_f1_score, macro_f1_score, nmi_score, y_pred_label_set in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores, aquired_y_pred_label_sets):
+                    # best k
+                    #best_k = cluster.determine_best_k(dr_features)
+                    used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.run_cluster(dr_features, labels, y_gt, RANDOM_SEED)
+                    for cl_alg, micro_f1_score, macro_f1_score, nmi_score, y_pred_label_set, pred_species_num in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species):
                         # append settings of the run to lists
                         preprocessing_types.append(used_preprocess)
                         cnns.append(used_cnn)
@@ -109,6 +113,8 @@ def main():
                         macro_f1_scores.append(macro_f1_score)
                         nmi_scores.append(nmi_score)
                         y_pred_label_sets.append(y_pred_label_set)
+                        species_pred.append(pred_species_num)
+                        #pred_cluster_numbers.append(best_k)
             
             # save results as pd
             results = {'Preprocess': preprocessing_types,
@@ -118,7 +124,9 @@ def main():
                     'Micro F1-Score': micro_f1_scores,
                     'Macro F1-Score': macro_f1_scores,
                     'NMI': nmi_scores,
-                    'Pred labels': y_pred_label_sets}
+                    'Pred labels': y_pred_label_sets,
+                    'Pred species': species_pred}
+                    #'Expected cluster number': pred_cluster_numbers}
             df = pd.DataFrame(results)
             # le = cluster.load_le(le_file)
             # gt_labels = cluster.get_int_labels(encoding_file, le)

@@ -15,3 +15,4 @@ def unique_rand(inicial, limit, total):
 random.seed(698)
 RANDOM_SEEDS = unique_rand(1, 999999, 5)
 SITE = 'Schiefer'
+NUMBER_OF_CLASSES = 4

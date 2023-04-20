@@ -101,6 +101,10 @@ def get_model(cnn: str):
         model = models.resnet152(weights=models.ResNet152_Weights.IMAGENET1K_V2)
     elif cnn == 'effnet':
         model = models.efficientnet_v2_l(weights=models.EfficientNet_V2_L_Weights.IMAGENET1K_V1)
+    elif cnn == 'densenet':
+        model = models.densenet201(weights=models.DenseNet201_Weights.IMAGENET1K_V1)
+    elif cnn == 'inception':
+        model = models.inception_v3(weights=models.Inception_V3_Weights.IMAGENET1K_V1)
     model.eval()
     return model
 
@@ -109,7 +113,7 @@ def concat_tensors(features):
     fc = fc.cpu().detach().numpy()
     return fc
 
-def get_fc_feature(model, image_tensor):
+def get_avgpool_fc_feature(model, image_tensor):
     # a dict to store the activations
     activation = {}
     def getActivation(name):
@@ -127,8 +131,31 @@ def get_fc_feature(model, image_tensor):
     feature = torch.unsqueeze(feature,dim=0)
     return feature
 
-def get_fc_features(model, image_tensors):
-    features = [get_fc_feature(model, tensor) for tensor in tqdm(image_tensors)]
+def get_avgpool_fc_features(model, image_tensors):
+    features = [get_avgpool_fc_feature(model, tensor) for tensor in tqdm(image_tensors)]
+    features = concat_tensors(features)
+    return features
+
+def get_avg_last_fc_feature(model, image_tensor):
+     # a dict to store the activations
+    activation = {}
+    def getActivation(name):
+        # the hook signature
+        def hook(model, input, output):
+            activation[name] = output.detach()
+        return hook
+    # register forward hooks on the layers of choice
+    h1 = model.register_forward_hook(getActivation('avg_last'))
+    # forward pass -- getting the outputs
+    out = model(image_tensor)
+    # detach the hooks
+    h1.remove()
+    feature = torch.squeeze(activation['avg_last'])
+    feature = torch.unsqueeze(feature,dim=0)
+    return feature
+
+def get_avg_last_fc_features(model, image_tensors):
+    features = [get_avg_last_fc_feature(model, tensor) for tensor in tqdm(image_tensors)]
     features = concat_tensors(features)
     return features
 
@@ -149,17 +176,32 @@ def extract_encodings(cnn:str, files:str):
         image_size = 224
         model = get_model(cnn)
         tensors = load_images_as_tensors(files, image_size)
+        print("Get VGG16 encodings")
         features = get_fc1_features(model, tensors)
     elif cnn == 'resnet':
         image_size = 224
         model = get_model(cnn)
         tensors = load_images_as_tensors(files, image_size)
-        features = get_fc_features(model, tensors)
+        print("Get ResNet152 encodings")
+        features = get_avgpool_fc_features(model, tensors)
     elif cnn == 'effnet':
         image_size = 224
         model = get_model(cnn)
         tensors = load_images_as_tensors(files, image_size)
-        features = get_fc_features(model, tensors)
+        print("Get EffNetV2 encodings")
+        features = get_avgpool_fc_features(model, tensors)
+    elif cnn == 'densenet':
+        image_size = 299
+        model = get_model(cnn)
+        tensors = load_images_as_tensors(files, image_size)
+        print("Get DenseNet201 encodings")
+        features = get_avg_last_fc_features(model, tensors)
+    elif cnn == 'inception':
+        image_size = 224
+        model = get_model(cnn)
+        tensors = load_images_as_tensors(files, image_size)
+        print("Get InceptionV3 encodings")
+        features = get_avgpool_fc_features(model, tensors)
     return features
 
 def save_encodings(files, features, labels, features_path):

@@ -1,35 +1,22 @@
-from matplotlib import gridspec, cm
-import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
 import pandas as pd
-import seaborn as sns
+import umap as up
 import pickle
-import skimage.io
-import yellowbrick
-from skimage.feature import hog
-from sklearn.datasets import make_classification
-from sklearn.mixture import GaussianMixture
-from sklearn.cluster import KMeans, DBSCAN, OPTICS, SpectralClustering, AgglomerativeClustering, FeatureAgglomeration, Birch, AffinityPropagation, MeanShift, estimate_bandwidth
-from sklearn.decomposition import PCA,KernelPCA, SparsePCA
+
+from sklearn.cluster import KMeans, OPTICS, AgglomerativeClustering, AffinityPropagation, MeanShift, estimate_bandwidth
+from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.metrics import confusion_matrix, classification_report, silhouette_samples, silhouette_score, calinski_harabasz_score, davies_bouldin_score
-from sklearn.metrics import f1_score, mean_absolute_error, mean_squared_error, rand_score, adjusted_rand_score, mutual_info_score, adjusted_mutual_info_score, normalized_mutual_info_score, homogeneity_score, completeness_score, v_measure_score, fowlkes_mallows_score
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.metrics import confusion_matrix, classification_report, silhouette_samples, silhouette_score
+from sklearn.metrics import f1_score, v_measure_score
 from sklearn.datasets import make_blobs
-from sklearn_extra.cluster import KMedoids
-from scipy.spatial.distance import cdist
 from joblib import Parallel, delayed
-from PIL import Image
 from fcmeans import FCM
 from yellowbrick.cluster import KElbowVisualizer
 from gap_statistic import OptimalK
 from collections import Counter
-import umap as up
-import statsmodels.api as sm
-from scipy.stats import shapiro, kstest, normaltest, anderson
 
 from analysis import label_tools as lt
+from .constants import NUMBER_OF_CLASSES
 
 def load_features(features_path):
     with open(features_path, 'rb') as f:
@@ -60,7 +47,6 @@ def pca(features):
     reduced = pca.fit_transform(features)
     return reduced
 
-# !!! no randomseed!
 def umap(features, RANDOM_SEED):
     reducer = up.UMAP(n_components=2, metric='cosine', random_state=RANDOM_SEED)
     reduced = reducer.fit_transform(features)
@@ -79,8 +65,8 @@ def tsne(features, RANDOM_SEED):
     x_w_tsne = tsne_w.fit_transform(x)
     return x_nw_tsne, x_w_tsne
 
-def elbow_score(reduced_f, RANDOM_SEED): # distortion
-    kmean_model = KMeans(init='k-means++', random_state=RANDOM_SEED)
+def elbow_score(reduced_f): # distortion
+    kmean_model = KMeans(n_init='auto', init='k-means++')
     visualizer = KElbowVisualizer(kmean_model, k=(2, 15), timings= True)
     visualizer.fit(reduced_f)        # Fit data to visualizer
     return visualizer.elbow_value_
@@ -141,14 +127,14 @@ def gap_statistic(reduced_f):
     n_clusters = optimalK(reduced_f, cluster_array=np.arange(2, 15))
     return n_clusters
 
-def ch_index(reduced_f, RANDOM_SEED):
-    model = KMeans(init='k-means++', random_state=RANDOM_SEED)
+def ch_index(reduced_f):
+    model = KMeans(n_init='auto', init='k-means++')
     visualizer = KElbowVisualizer(model, k=(2, 15), metric='calinski_harabasz', timings=True)
     visualizer.fit(reduced_f)
     return visualizer.elbow_value_
 
-def silhouette_score(reduced_f, RANDOM_SEED):
-    model = KMeans(init='k-means++', random_state=RANDOM_SEED)
+def silhouette_score(reduced_f):
+    model = KMeans(n_init='auto', init='k-means++')
     visualizer = KElbowVisualizer(model, k=(2, 15), metric='silhouette', timings=True)
     visualizer.fit(reduced_f)
     return visualizer.elbow_value_
@@ -164,19 +150,20 @@ def most_common_elem(lst):
     data = Counter(lst)
     return max(lst, key=data.get)
 
-def determine_best_k(reduced_f):
+def get_proposed_cluster_numbers(reduced_f):
     elbow_k = elbow_score(reduced_f)
     scaled_k, results = scaled_insertia(reduced_f)
     gap_k = gap_statistic(reduced_f)
     ch_index_k = ch_index(reduced_f)
     silhouette_k = silhouette_score(reduced_f)
     affinity_k = affinity_propagation(reduced_f)
-    cluster_proposals = [elbow_k, scaled_k, gap_k, ch_index_k, silhouette_k, affinity_k]
-    optimal_k = most_common_elem(cluster_proposals)
-    return optimal_k
+    return [elbow_k, scaled_k, gap_k, ch_index_k, silhouette_k, affinity_k]
+
+def determine_best_k(reduced_f):
+    return most_common_elem(get_proposed_cluster_numbers(reduced_f))
 
 def mean_shift(reduced_f, labels, y_gt, RANDOM_SEED):
-    bandwidth = estimate_bandwidth(reduced_f, quantile=0.1, n_samples=500, random_state=RANDOM_SEED)
+    bandwidth = estimate_bandwidth(reduced_f, quantile=0.3, n_samples=None, random_state=RANDOM_SEED)
     model = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
@@ -185,23 +172,43 @@ def mean_shift(reduced_f, labels, y_gt, RANDOM_SEED):
     labels_unique = np.unique(labels)
     n_clusters_ = len(labels_unique)
     micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
-    return y_pred, micro_f1_score, macro_f1_score, nmi
+    num_pred_species = len(set(y_pred))
+    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
 
 def k_means(reduced_f, y_gt):
-    model = KMeans(n_clusters=4, init='k-means++', n_init=500)
+    model = KMeans(n_clusters=NUMBER_OF_CLASSES, init='k-means++', n_init=500)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
     micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
-    return y_pred, micro_f1_score, macro_f1_score, nmi
+    num_pred_species = len(set(y_pred))
+    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
 
 def agglo_cl(reduced_f, y_gt):
-    model = AgglomerativeClustering(n_clusters=4)
+    model = AgglomerativeClustering(n_clusters=NUMBER_OF_CLASSES)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
     micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
-    return y_pred, micro_f1_score, macro_f1_score, nmi
+    num_pred_species = len(set(y_pred))
+    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
+
+def fuzzy_k_means(reduced_f, y_gt):
+    model = FCM(n_clusters=NUMBER_OF_CLASSES)
+    model.fit(reduced_f)
+    labels_unmatched = model.predict(reduced_f)
+    y_pred = lt.label_matcher(labels_unmatched, y_gt)
+    micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
+    num_pred_species = len(set(y_pred))
+    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
+
+def optics(reduced_f, y_gt):
+    model = OPTICS(min_samples=5).fit(reduced_f)
+    labels_unmatched = model.labels_
+    y_pred = lt.label_matcher(labels_unmatched, y_gt)
+    micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
+    num_pred_species = len(set(y_pred))
+    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
 
 def run_cluster(reduced_f, labels, y_gt, RANDOM_SEED):
     cluster_techniques = []
@@ -209,32 +216,48 @@ def run_cluster(reduced_f, labels, y_gt, RANDOM_SEED):
     macro_f1_scores = []
     nmi_scores = []
     y_pred_labels = []
-    ms_y_pred, ms_micro_f1_score, ms_macro_f1_score, ms_nmi = mean_shift(reduced_f, labels, y_gt, RANDOM_SEED)
+    species_pred = []
+    ms_y_pred, ms_micro_f1_score, ms_macro_f1_score, ms_nmi, ms_species = mean_shift(reduced_f, labels, y_gt, RANDOM_SEED)
     ms_ident_str = 'mean-shift'
     cluster_techniques.append(ms_ident_str)
     micro_f1_scores.append(ms_micro_f1_score)
     macro_f1_scores.append(ms_macro_f1_score)
     nmi_scores.append(ms_nmi)
-    print("MS LABELS", len(ms_y_pred))
     y_pred_labels.append(ms_y_pred)
-    km_y_pred, km_micro_f1_score, km_macro_f1_score, km_nmi = k_means(reduced_f, y_gt)
+    species_pred.append(ms_species)
+    km_y_pred, km_micro_f1_score, km_macro_f1_score, km_nmi, km_species = k_means(reduced_f, y_gt)
     km_ident_str = 'k-means++'
     cluster_techniques.append(km_ident_str)
     micro_f1_scores.append(km_micro_f1_score)
     macro_f1_scores.append(km_macro_f1_score)
     nmi_scores.append(km_nmi)
-    print("KM LABELS", len(km_y_pred))
     y_pred_labels.append(km_y_pred)
-    agglo_y_pred, agglo_micro_f1_score, agglo_macro_f1_score, agglo_nmi = k_means(reduced_f, y_gt)
+    species_pred.append(km_species)
+    agglo_y_pred, agglo_micro_f1_score, agglo_macro_f1_score, agglo_nmi, agglo_species = k_means(reduced_f, y_gt)
     agglo_ident_str = 'agglo'
     cluster_techniques.append(agglo_ident_str)
     micro_f1_scores.append(agglo_micro_f1_score)
     macro_f1_scores.append(agglo_macro_f1_score)
-    print("AGGLO LABELS", len(agglo_y_pred))
     nmi_scores.append(agglo_nmi)
     y_pred_labels.append(agglo_y_pred)
-    print("ALL pred LABELS", len(y_pred_labels))
-    return cluster_techniques, micro_f1_scores, macro_f1_scores, nmi_scores, y_pred_labels
+    species_pred.append(agglo_species)
+    fkm_y_pred, fkm_micro_f1_score, fkm_macro_f1_score, fkm_nmi, fkm_species = fuzzy_k_means(reduced_f, y_gt)
+    fkm_ident_str = 'fk-means'
+    cluster_techniques.append(fkm_ident_str)
+    micro_f1_scores.append(fkm_micro_f1_score)
+    macro_f1_scores.append(fkm_macro_f1_score)
+    nmi_scores.append(fkm_nmi)
+    y_pred_labels.append(fkm_y_pred)
+    species_pred.append(fkm_species)
+    op_y_pred, op_micro_f1_score, op_macro_f1_score, op_nmi, op_species = optics(reduced_f, y_gt)
+    op_ident_str = 'optics'
+    cluster_techniques.append(op_ident_str)
+    micro_f1_scores.append(op_micro_f1_score)
+    macro_f1_scores.append(op_macro_f1_score)
+    nmi_scores.append(op_nmi)
+    y_pred_labels.append(op_y_pred)
+    species_pred.append(op_species)
+    return cluster_techniques, micro_f1_scores, macro_f1_scores, nmi_scores, y_pred_labels, species_pred
 
 def get_accuracy_value(y_gt, y_pred):
     micro_f1_score = f1_score(y_gt, y_pred, average='micro')
@@ -244,5 +267,6 @@ def get_accuracy_value(y_gt, y_pred):
 
 if __name__ == "__main__":
     # test data
-    X, y = make_blobs(n_samples=80, centers=3, n_features=2, random_state=12)
+    X, y = make_blobs(n_samples=100, centers=3, n_features=2, random_state=12)
+    print(get_proposed_cluster_numbers(X))
     print(determine_best_k(X))

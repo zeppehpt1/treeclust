@@ -11,7 +11,7 @@ def get_files(csv_dir):
 def get_basic_df(csv_dir):
     csv_files = get_files(csv_dir)
     df = pd.read_csv(csv_files[0])
-    new_df = df.get(['Preprocess', 'CNN', 'DR', 'Clustering', 'Pred labels'])
+    new_df = df.get(['Preprocess', 'CNN', 'DR', 'Clustering', 'Pred labels', 'Pred species'])
     return new_df
 
 def get_single_column_dfs(csv_dir, column_name:str):
