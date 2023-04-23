@@ -77,6 +77,9 @@ def main():
             nmi_scores = []
             y_pred_label_sets = []
             species_pred = []
+            f_star_scores = []
+            cohen_kappa_scores = []
+            mcc_scores = []
             #pred_cluster_numbers = []
             
             run_ident = str(RANDOM_SEEDS.index(RANDOM_SEED))
@@ -102,8 +105,8 @@ def main():
                     # cluser analysis
                     # best k
                     #best_k = cluster.determine_best_k(dr_features)
-                    used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.run_cluster(dr_features, labels, y_gt, RANDOM_SEED)
-                    for cl_alg, micro_f1_score, macro_f1_score, nmi_score, y_pred_label_set, pred_species_num in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species):
+                    used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.get_cluster_res(dr_features, y_gt)
+                    for cl_alg, micro_f1_score, macro_f1_score, f_star_score, cohen_kappa_score, mcc_score, nmi_score, y_pred_label_set, pred_species_num in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species):
                         # append settings of the run to lists
                         preprocessing_types.append(used_preprocess)
                         cnns.append(used_cnn)
@@ -111,6 +114,9 @@ def main():
                         cluster_techniques.append(cl_alg)
                         micro_f1_scores.append(micro_f1_score)
                         macro_f1_scores.append(macro_f1_score)
+                        f_star_scores.append(f_star_score)
+                        cohen_kappa_scores.append(cohen_kappa_score)
+                        mcc_scores.append(mcc_score)
                         nmi_scores.append(nmi_score)
                         y_pred_label_sets.append(y_pred_label_set)
                         species_pred.append(pred_species_num)
@@ -123,6 +129,9 @@ def main():
                     'Clustering': cluster_techniques,
                     'Micro F1-Score': micro_f1_scores,
                     'Macro F1-Score': macro_f1_scores,
+                    'F-Star Score': f_star_scores,
+                    'Cohens Kappa': cohen_kappa_scores,
+                    'Matthews correlation coefficient': mcc_scores,
                     'NMI': nmi_scores,
                     'Pred labels': y_pred_label_sets,
                     'Pred species': species_pred}

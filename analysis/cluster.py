@@ -6,8 +6,7 @@ import pickle
 from sklearn.cluster import KMeans, OPTICS, AgglomerativeClustering, AffinityPropagation, MeanShift, estimate_bandwidth
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.metrics import confusion_matrix, classification_report, silhouette_samples, silhouette_score
-from sklearn.metrics import f1_score, v_measure_score
+from sklearn.metrics import f1_score, v_measure_score, silhouette_score, matthews_corrcoef, cohen_kappa_score
 from sklearn.datasets import make_blobs
 from joblib import Parallel, delayed
 from fcmeans import FCM
@@ -162,108 +161,115 @@ def get_proposed_cluster_numbers(reduced_f):
 def determine_best_k(reduced_f):
     return most_common_elem(get_proposed_cluster_numbers(reduced_f))
 
-def mean_shift(reduced_f, labels, y_gt, RANDOM_SEED):
-    bandwidth = estimate_bandwidth(reduced_f, quantile=0.3, n_samples=None, random_state=RANDOM_SEED)
+def mean_shift(reduced_f, y_gt):
+    bandwidth = estimate_bandwidth(reduced_f, quantile=0.3, n_samples=None)
     model = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
-    cluster_centers = model.cluster_centers_
-    labels_unique = np.unique(labels)
-    n_clusters_ = len(labels_unique)
-    micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
+    # cluster_centers = model.cluster_centers_
+    # labels_unique = np.unique(labels)
+    # n_clusters_ = len(labels_unique)
+    micro_f1_score, macro_f1_score, nmi, f_star, cohen_kappa, mcc = get_accuracy_value(y_gt, y_pred)
     num_pred_species = len(set(y_pred))
-    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
+    return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
 def k_means(reduced_f, y_gt):
     model = KMeans(n_clusters=NUMBER_OF_CLASSES, init='k-means++', n_init=500)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
-    micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
+    micro_f1_score, macro_f1_score, nmi, f_star, cohen_kappa, mcc = get_accuracy_value(y_gt, y_pred)
     num_pred_species = len(set(y_pred))
-    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
+    return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
 def agglo_cl(reduced_f, y_gt):
     model = AgglomerativeClustering(n_clusters=NUMBER_OF_CLASSES)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
-    micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
+    micro_f1_score, macro_f1_score, nmi, f_star, cohen_kappa, mcc = get_accuracy_value(y_gt, y_pred)
     num_pred_species = len(set(y_pred))
-    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
+    return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
 def fuzzy_k_means(reduced_f, y_gt):
     model = FCM(n_clusters=NUMBER_OF_CLASSES)
     model.fit(reduced_f)
     labels_unmatched = model.predict(reduced_f)
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
-    micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
+    micro_f1_score, macro_f1_score, nmi, f_star, cohen_kappa, mcc = get_accuracy_value(y_gt, y_pred)
     num_pred_species = len(set(y_pred))
-    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
+    return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
 def optics(reduced_f, y_gt):
     model = OPTICS(min_samples=5).fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
-    micro_f1_score, macro_f1_score, nmi = get_accuracy_value(y_gt, y_pred)
+    micro_f1_score, macro_f1_score, nmi, f_star, cohen_kappa, mcc = get_accuracy_value(y_gt, y_pred)
     num_pred_species = len(set(y_pred))
-    return y_pred, micro_f1_score, macro_f1_score, nmi, num_pred_species
+    return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
-def run_cluster(reduced_f, labels, y_gt, RANDOM_SEED):
+def get_cluster_res(reduced_f, y_gt):
+    fns = [mean_shift, k_means, agglo_cl, fuzzy_k_means, optics]
+    fns_idents = ['mean-shift', 'k-means++', 'agglo', 'fk-means', 'optics']
     cluster_techniques = []
     micro_f1_scores = []
     macro_f1_scores = []
+    f_star_values = []
+    cohen_kappa_scores = []
     nmi_scores = []
+    mcc_scores = []
     y_pred_labels = []
     species_pred = []
-    ms_y_pred, ms_micro_f1_score, ms_macro_f1_score, ms_nmi, ms_species = mean_shift(reduced_f, labels, y_gt, RANDOM_SEED)
-    ms_ident_str = 'mean-shift'
-    cluster_techniques.append(ms_ident_str)
-    micro_f1_scores.append(ms_micro_f1_score)
-    macro_f1_scores.append(ms_macro_f1_score)
-    nmi_scores.append(ms_nmi)
-    y_pred_labels.append(ms_y_pred)
-    species_pred.append(ms_species)
-    km_y_pred, km_micro_f1_score, km_macro_f1_score, km_nmi, km_species = k_means(reduced_f, y_gt)
-    km_ident_str = 'k-means++'
-    cluster_techniques.append(km_ident_str)
-    micro_f1_scores.append(km_micro_f1_score)
-    macro_f1_scores.append(km_macro_f1_score)
-    nmi_scores.append(km_nmi)
-    y_pred_labels.append(km_y_pred)
-    species_pred.append(km_species)
-    agglo_y_pred, agglo_micro_f1_score, agglo_macro_f1_score, agglo_nmi, agglo_species = k_means(reduced_f, y_gt)
-    agglo_ident_str = 'agglo'
-    cluster_techniques.append(agglo_ident_str)
-    micro_f1_scores.append(agglo_micro_f1_score)
-    macro_f1_scores.append(agglo_macro_f1_score)
-    nmi_scores.append(agglo_nmi)
-    y_pred_labels.append(agglo_y_pred)
-    species_pred.append(agglo_species)
-    fkm_y_pred, fkm_micro_f1_score, fkm_macro_f1_score, fkm_nmi, fkm_species = fuzzy_k_means(reduced_f, y_gt)
-    fkm_ident_str = 'fk-means'
-    cluster_techniques.append(fkm_ident_str)
-    micro_f1_scores.append(fkm_micro_f1_score)
-    macro_f1_scores.append(fkm_macro_f1_score)
-    nmi_scores.append(fkm_nmi)
-    y_pred_labels.append(fkm_y_pred)
-    species_pred.append(fkm_species)
-    op_y_pred, op_micro_f1_score, op_macro_f1_score, op_nmi, op_species = optics(reduced_f, y_gt)
-    op_ident_str = 'optics'
-    cluster_techniques.append(op_ident_str)
-    micro_f1_scores.append(op_micro_f1_score)
-    macro_f1_scores.append(op_macro_f1_score)
-    nmi_scores.append(op_nmi)
-    y_pred_labels.append(op_y_pred)
-    species_pred.append(op_species)
-    return cluster_techniques, micro_f1_scores, macro_f1_scores, nmi_scores, y_pred_labels, species_pred
+    for fn, ident in zip(fns, fns_idents):
+        y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, species = fn(reduced_f, y_gt)
+        cluster_techniques.append(ident)
+        micro_f1_scores.append(micro_f1_score)
+        macro_f1_scores.append(macro_f1_score)
+        f_star_values.append(f_star)
+        cohen_kappa_scores.append(cohen_kappa)
+        mcc_scores.append(mcc)
+        nmi_scores.append(nmi)
+        y_pred_labels.append(y_pred)
+        species_pred.append(species)
+    return cluster_techniques, micro_f1_scores, macro_f1_scores, f_star_values, cohen_kappa_scores, mcc_scores, nmi_scores, y_pred_labels, species_pred
+
+def tp(y_true, y_pred):
+    return np.sum(np.multiply([i==True for i in y_pred], y_true))
+
+def fp(y_true, y_pred):
+    return np.sum(np.multiply([i==True for i in y_pred], [not(j) for j in y_true]))
+
+def tn(y_true, y_pred):
+    return np.sum(np.multiply([i==False for i in y_pred], [not(j) for j in y_true]))
+
+def fn(y_true, y_pred):
+    return np.sum(np.multiply([i==False for i in y_pred], y_true))
+
+def get_multiclass_cm_values(y_true, y_pred):
+    tp_values = []
+    fp_values = []
+    tn_values = []
+    fn_values = []
+    for i in np.unique(y_true):
+        modified_true = [i==j for j in y_true]
+        modified_pred = [i==j for j in y_pred]
+        TP = tp(modified_true, modified_pred)
+        tp_values.append(TP)
+        FP = fp(modified_true, modified_pred)
+        fp_values.append(FP)
+        TN = tn(modified_true, modified_pred)
+        tn_values.append(TN)
+        FN = fn(modified_true, modified_pred)
+        fn_values.append(FN)
+    return np.mean(tp_values), np.mean(fp_values), np.mean(fp_values),  np.mean(fp_values)
+
+def f_star(y_true, y_pred):
+    TP, FP, TN, FN = get_multiclass_cm_values(y_true, y_pred)
+    return TP / (FN + FP + TP)
 
 def get_accuracy_value(y_gt, y_pred):
-    micro_f1_score = f1_score(y_gt, y_pred, average='micro')
-    macro_f1_score = f1_score(y_gt, y_pred, average='macro')
-    nmi = v_measure_score(y_gt, y_pred)
-    return micro_f1_score, macro_f1_score, nmi
+    return f1_score(y_gt, y_pred, average='micro'), f1_score(y_gt, y_pred, average='macro'), v_measure_score(y_gt, y_pred), f_star(y_gt, y_pred), cohen_kappa_score(y_gt, y_pred), matthews_corrcoef(y_gt, y_pred)
 
 if __name__ == "__main__":
     # test data
