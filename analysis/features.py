@@ -17,6 +17,7 @@ from glob import glob
 from tqdm import tqdm
 
 from analysis import label_tools as lt
+from .constants import SITE
 
 def load_files(preprocessed_fp:str):
     files = sorted(Path(preprocessed_fp).glob('*.png'))
@@ -41,22 +42,79 @@ def load_images_as_tensors(files, image_size):
 
 def extract_numeric_labels(files): return [filename.stem.split('_')[5] for filename in files]
 # mabye adjust number position in filename!
+# 6 schiefer
+# 5 stadtwald
 
-def convert_number_to_str(labels):
-    update = {
-    '4':'Fagus_sylvatica',
-    #'5':'Fraxinus_excelsior',
-    #'6':'Quercus_spec',
-    '8':'deadwood',
-    '10':'Abies_alba',
-    #'11':'Larix_decidua',
-    '12':'Picea_abies',
-    #'13':'Pinus_sylvestris',
-    #'14':'Pseudotsuga_menziesii'
-    }
-    updated_labels = (pd.Series(labels)).map(update)
-    species_labels = list(updated_labels)
-    return species_labels
+# # single cfb184 crowns
+# def convert_number_to_str(labels):
+#     update = {
+#     '4':'Fagus_sylvatica',
+#     #'5':'Fraxinus_excelsior',
+#     #'6':'Quercus_spec',
+#     '8':'deadwood',
+#     '10':'Abies_alba',
+#     #'11':'Larix_decidua',
+#     '12':'Picea_abies',
+#     #'13':'Pinus_sylvestris',
+#     #'14':'Pseudotsuga_menziesii'
+#     }
+#     updated_labels = (pd.Series(labels)).map(update)
+#     species_labels = list(updated_labels)
+#     return species_labels
+# # adjust species according to analyzed sites
+
+def convert_number_to_str(labels): # all schiefer
+    if SITE == 'Schiefer':
+        update = {
+        #'2':'Acer pseudoplatanus', not appears
+        '4':'Fagus_sylvatica',
+        '5':'Fraxinus_excelsior',
+        '6':'Quercus_spec',
+        '8':'deadwood',
+        '10':'Abies_alba',
+        '11':'Larix_decidua',
+        '12':'Picea_abies',
+        '13':'Pinus_sylvestris',
+        '14':'Pseudotsuga_menziesii',
+        '15':'Betula pendula'
+        }
+        updated_labels = (pd.Series(labels)).map(update)
+        species_labels = list(updated_labels)
+        return species_labels
+    elif SITE == 'Bamberg_Stadtwald':
+        update = {
+        '2':'Acer pseudoplatanus',
+        '4':'Fagus_sylvatica',
+        '6':'Quercus_spec',
+        '8':'deadwood',
+        '11':'Larix_decidua',
+        '12':'Picea_abies',
+        '13':'Pinus_sylvestris',
+        '14':'Pseudotsuga_menziesii',
+        '16':'Lbh',
+        '18':'Sorbus torminalis',
+        '19':'Ulmus',
+        '20':'Acer platanoides',
+        '21':'Quercus rubra'
+        }
+        updated_labels = (pd.Series(labels)).map(update)
+        species_labels = list(updated_labels)
+        return species_labels
+    elif SITE == 'Tretzendorf':
+        update = {
+        '4':'Fagus_sylvatica',
+        '6':'Quercus_spec',
+        '8':'deadwood',
+        '11':'Larix_decidua',
+        '12':'Picea_abies',
+        '13':'Pinus_sylvestris',
+        '18':'Sorbus torminalis',
+        '19':'Ulmus',
+        '20':'Acer platanoides'
+        }
+        updated_labels = (pd.Series(labels)).map(update)
+        species_labels = list(updated_labels)
+        return species_labels
 # adjust species according to analyzed sites
 
 def encode_labels(labels):
@@ -216,19 +274,22 @@ def create_and_save_le_encodings(cnn:str, preprocessed_fp:str, site_folder:str):
     
     features_dir = site_folder + 'encodings/'
     Path(features_dir).mkdir(parents=True, exist_ok=True)
-    features_path = features_dir + cnn + '_' + str(preprocessed_fp).split('_')[2] + '_polygon_pred.pickle'
+    preprocess_str = str(Path(preprocessed_fp).stem).split('_')[2]
+    features_path = features_dir + cnn + '_' + preprocess_str + '_polygon_pred.pickle'
 
     if os.path.isfile(features_path) == False:
         files = load_files(preprocessed_fp)
         labels = extract_numeric_labels(files)
+        print(labels)
         labels = convert_number_to_str(labels)
+        
         le = encode_labels(labels)
         features = extract_encodings(cnn, files)
         
         # save le
         le_dir = site_folder + '/label_encodings/'
         Path(le_dir).mkdir(parents=True, exist_ok=True)
-        le_path = le_dir + cnn + '_' + str(preprocessed_fp).split('_')[2] + '_label_encodings.pickle'
+        le_path = le_dir + cnn + '_' + preprocess_str + '_label_encodings.pickle'
         save_le(le, le_path)
         
         # save encoding

@@ -198,6 +198,7 @@ target/
 .ipynb_checkpoints
 /*.ipynb
 *tempCodeRunnerFile.py
+notebooks/progress/
 
 # big data files
 data/orthomosaics/

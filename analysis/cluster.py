@@ -41,7 +41,7 @@ def load_all_data(features_path, le_path):
     return files, features, labels, y_gt
     
 def pca(features):
-    pca = PCA(n_components=0.85, svd_solver='full', whiten=True)
+    pca = PCA(n_components=0.95, svd_solver='full', whiten=True)
     pca.fit(features)
     reduced = pca.fit_transform(features)
     return reduced
@@ -161,8 +161,8 @@ def get_proposed_cluster_numbers(reduced_f):
 def determine_best_k(reduced_f):
     return most_common_elem(get_proposed_cluster_numbers(reduced_f))
 
-def mean_shift(reduced_f, y_gt):
-    bandwidth = estimate_bandwidth(reduced_f, quantile=0.3, n_samples=None)
+def mean_shift(reduced_f, y_gt, RANDOM_SEED):
+    bandwidth = estimate_bandwidth(reduced_f, quantile=0.3, n_samples=None, random_state=RANDOM_SEED)
     model = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
@@ -174,8 +174,8 @@ def mean_shift(reduced_f, y_gt):
     num_pred_species = len(set(y_pred))
     return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
-def k_means(reduced_f, y_gt):
-    model = KMeans(n_clusters=NUMBER_OF_CLASSES, init='k-means++', n_init=500)
+def k_means(reduced_f, y_gt, RANDOM_SEED):
+    model = KMeans(n_clusters=NUMBER_OF_CLASSES, init='k-means++', n_init=500, random_state=RANDOM_SEED)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
@@ -183,7 +183,7 @@ def k_means(reduced_f, y_gt):
     num_pred_species = len(set(y_pred))
     return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
-def agglo_cl(reduced_f, y_gt):
+def agglo_cl(reduced_f, y_gt, RANDOM_SEED):
     model = AgglomerativeClustering(n_clusters=NUMBER_OF_CLASSES)
     model.fit(reduced_f)
     labels_unmatched = model.labels_
@@ -192,8 +192,8 @@ def agglo_cl(reduced_f, y_gt):
     num_pred_species = len(set(y_pred))
     return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
-def fuzzy_k_means(reduced_f, y_gt):
-    model = FCM(n_clusters=NUMBER_OF_CLASSES)
+def fuzzy_k_means(reduced_f, y_gt, RANDOM_SEED):
+    model = FCM(n_clusters=NUMBER_OF_CLASSES, random_state=RANDOM_SEED)
     model.fit(reduced_f)
     labels_unmatched = model.predict(reduced_f)
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
@@ -201,7 +201,7 @@ def fuzzy_k_means(reduced_f, y_gt):
     num_pred_species = len(set(y_pred))
     return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
-def optics(reduced_f, y_gt):
+def optics(reduced_f, y_gt, RANDOM_SEED):
     model = OPTICS(min_samples=5).fit(reduced_f)
     labels_unmatched = model.labels_
     y_pred = lt.label_matcher(labels_unmatched, y_gt)
@@ -209,7 +209,7 @@ def optics(reduced_f, y_gt):
     num_pred_species = len(set(y_pred))
     return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
-def get_cluster_res(reduced_f, y_gt):
+def get_cluster_res(reduced_f, y_gt, RANDOM_SEED):
     fns = [mean_shift, k_means, agglo_cl, fuzzy_k_means, optics]
     fns_idents = ['mean-shift', 'k-means++', 'agglo', 'fk-means', 'optics']
     cluster_techniques = []
@@ -222,7 +222,7 @@ def get_cluster_res(reduced_f, y_gt):
     y_pred_labels = []
     species_pred = []
     for fn, ident in zip(fns, fns_idents):
-        y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, species = fn(reduced_f, y_gt)
+        y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, species = fn(reduced_f, y_gt, RANDOM_SEED)
         cluster_techniques.append(ident)
         micro_f1_scores.append(micro_f1_score)
         macro_f1_scores.append(macro_f1_score)

@@ -14,12 +14,26 @@ from pathlib import Path
 from tqdm import tqdm
 
 def main():
-    # define dataset paths folders, Schiefer or Stadtwald, probably multiple files for one site
+    #schiefer
     site_folder = '/home/richard/data/' + SITE + '/'
-    orthophoto_dir = site_folder + 'ortho_tiles'
-    gt_mask_dir = site_folder + 'gt_masks'
-    prediction_dir = site_folder + 'predictions'
+    orthophoto_dir = site_folder + 'ortho_tiles/'
+    gt_mask_dir = site_folder + 'gt_masks/'
+    prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
     # gt_annotations_dir = "" # optional
+    
+    # stadtwald
+    # site_folder = '/home/richard/data/' + SITE + '/'
+    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
+    # gt_mask_dir = site_folder + 'gt_masks/'
+    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
+    # # gt_annotations_dir = "" # optional
+    
+    # # tretzendorf
+    # site_folder = '/home/richard/data/' + SITE + '/'
+    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
+    # gt_mask_dir = site_folder + 'gt_masks/'
+    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
+    # # gt_annotations_dir = "" # optional
     
     # define folders
     encoding_dir = Path(site_folder + 'encodings')
@@ -62,7 +76,7 @@ def main():
     
     # 4. analysis
     # 5 runs
-    final_res_name ='final' + '_' + SITE + '_' + 'analysis.csv'
+    final_res_name ='final' + '_' + SITE + '_' + 'analysis.pickle'
     if os.path.exists(result_dir / final_res_name) == False:
         for RANDOM_SEED in (pbar := tqdm(RANDOM_SEEDS)):
             pbar.set_description(f"Run analysis with seed {RANDOM_SEED}")
@@ -105,7 +119,7 @@ def main():
                     # cluser analysis
                     # best k
                     #best_k = cluster.determine_best_k(dr_features)
-                    used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.get_cluster_res(dr_features, y_gt)
+                    used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.get_cluster_res(dr_features, y_gt, RANDOM_SEED)
                     for cl_alg, micro_f1_score, macro_f1_score, f_star_score, cohen_kappa_score, mcc_score, nmi_score, y_pred_label_set, pred_species_num in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species):
                         # append settings of the run to lists
                         preprocessing_types.append(used_preprocess)
@@ -137,15 +151,18 @@ def main():
                     'Pred species': species_pred}
                     #'Expected cluster number': pred_cluster_numbers}
             df = pd.DataFrame(results)
-            # le = cluster.load_le(le_file)
-            # gt_labels = cluster.get_int_labels(encoding_file, le)
-            # df['GT labels'] = gt_labels
             
-            result_filename = run_ident + '_' + SITE + '_' + 'analysis.csv'
-            df.to_csv(result_dir / result_filename, index=False)
+            # test pickle save
+            result_filename = run_ident + '_' + SITE + '_' + 'analysis.pickle'
+            pd.to_pickle(df, result_dir / result_filename)
+            # result_filename = run_ident + '_' + SITE + '_' + 'analysis.csv'
+            # df.to_csv(result_dir / result_filename, index=False)
             results = results.clear()
+        # test pickle
         final_df = evaluation.get_complete_mean_df(result_dir)
-        final_df.to_csv(result_dir / final_res_name, index=False)
+        pd.to_pickle(final_df, result_dir / final_res_name)
+        # final_df = evaluation.get_complete_mean_df(result_dir)
+        # final_df.to_csv(result_dir / final_res_name, index=False)
     else:
         print("Final results already produced")
 

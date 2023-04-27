@@ -6,11 +6,11 @@ from tqdm import tqdm
 from .constants import SITE
 
 def get_files(csv_dir):
-    return sorted(csv_dir.glob(('*_' + SITE + '_analysis.csv')))
+    return sorted(csv_dir.glob(('*_' + SITE + '_analysis.pickle')))
 
 def get_basic_df(csv_dir):
     csv_files = get_files(csv_dir)
-    df = pd.read_csv(csv_files[0])
+    df = pd.read_pickle(csv_files[0]) # beware change!
     new_df = df.get(['Preprocess', 'CNN', 'DR', 'Clustering', 'Pred labels', 'Pred species'])
     return new_df
 
@@ -18,7 +18,8 @@ def get_single_column_dfs(csv_dir, column_name:str):
     csv_files = get_files(csv_dir)
     dfs = []
     for csv in csv_files:
-        df = pd.read_csv(csv)
+        #df = pd.read_csv(csv)
+        df = pd.read_pickle(csv)
         dfs.append(df[column_name])
     return dfs
 

@@ -5,6 +5,7 @@ import json
 import numpy as np
 import os
 import glob
+import math
 from geopandas import GeoDataFrame
 from rasterio.mask import mask
 from shapely import geometry
@@ -21,10 +22,13 @@ def highest_pixel_count(img_array):
     if highest_pixel_value[0] == 0 and len(highest_pixel_value) == 1:
         return 9999
     index = 0
-    forbidden_values = {0,1,2,9} # discard forest floor as well
+    forbidden_values = {0,1,9} # discard forest floor as well
     while True:
         if highest_pixel_value[index] not in forbidden_values:
-            return highest_pixel_value[index]
+            if math.isnan(highest_pixel_value[index]):
+                return 9999
+            else:
+                return int(highest_pixel_value[index])
         elif 0 <= index < len(highest_pixel_value):
             return 9999
         index += 1
@@ -193,9 +197,9 @@ def clip_crown_sets_with_gt_masks(imgs_dir: Union[str, Path], crown_dir, mask_di
         step_size: Defaults to 0.5. Affects only inner square polygons when make_squares is set to TRUE.
     """
     
-    img_files = glob.glob(imgs_dir + '/*.tif')
-    crown_files = glob.glob(crown_dir + '/*.gpkg')
-    mask_files = glob.glob(mask_dir + '/*.tif')
+    img_files = glob.glob(imgs_dir + '*.tif')
+    crown_files = glob.glob(crown_dir + '*.gpkg')
+    mask_files = glob.glob(mask_dir + '*.tif')
     
     [folder.sort() for folder in [img_files, crown_files, mask_files]]
     
