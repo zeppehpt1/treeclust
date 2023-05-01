@@ -15,11 +15,11 @@ from tqdm import tqdm
 
 def main():
     #schiefer
-    site_folder = '/home/richard/data/' + SITE + '/'
-    orthophoto_dir = site_folder + 'ortho_tiles/'
-    gt_mask_dir = site_folder + 'gt_masks/'
-    prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
-    # gt_annotations_dir = "" # optional
+    # site_folder = '/home/richard/data/' + SITE + '/'
+    # orthophoto_dir = site_folder + 'ortho_tiles/'
+    # gt_mask_dir = site_folder + 'gt_masks/'
+    # prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
+    # # gt_annotations_dir = "" # optional
     
     # stadtwald
     # site_folder = '/home/richard/data/' + SITE + '/'
@@ -29,11 +29,11 @@ def main():
     # # gt_annotations_dir = "" # optional
     
     # # tretzendorf
-    # site_folder = '/home/richard/data/' + SITE + '/'
-    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
-    # gt_mask_dir = site_folder + 'gt_masks/'
-    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
-    # # gt_annotations_dir = "" # optional
+    site_folder = '/home/richard/data/' + SITE + '/'
+    orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
+    gt_mask_dir = site_folder + 'gt_masks/'
+    prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
+    # gt_annotations_dir = "" # optional
     
     # define folders
     encoding_dir = Path(site_folder + 'encodings')
