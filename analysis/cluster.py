@@ -192,7 +192,7 @@ def agglo_cl(reduced_f, y_gt, RANDOM_SEED):
     num_pred_species = len(set(y_pred))
     return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
-def fuzzy_k_means(reduced_f, y_gt, RANDOM_SEED):
+def fuzzy_c_means(reduced_f, y_gt, RANDOM_SEED):
     model = FCM(n_clusters=NUMBER_OF_CLASSES, random_state=RANDOM_SEED)
     model.fit(reduced_f)
     labels_unmatched = model.predict(reduced_f)
@@ -210,8 +210,8 @@ def optics(reduced_f, y_gt, RANDOM_SEED):
     return y_pred, micro_f1_score, macro_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
 def get_cluster_res(reduced_f, y_gt, RANDOM_SEED):
-    fns = [mean_shift, k_means, agglo_cl, fuzzy_k_means, optics]
-    fns_idents = ['mean-shift', 'k-means++', 'agglo', 'fk-means', 'optics']
+    fns = [mean_shift, k_means, agglo_cl, fuzzy_c_means, optics]
+    fns_idents = ['mean-shift', 'k-means++', 'agglo', 'fc-means', 'optics']
     cluster_techniques = []
     micro_f1_scores = []
     macro_f1_scores = []

@@ -1,8 +1,17 @@
-from pathlib import Path
+import pickle
+import umap
+import numpy as np
 import pandas as pd
+from pathlib import Path
 from glob import glob
 from tqdm import tqdm
+from fcmeans import FCM
+from scipy.stats import shapiro
+from sklearn.cluster import KMeans, AgglomerativeClustering, OPTICS
+from sklearn.decomposition import PCA
+from sklearn.metrics import f1_score
 
+from analysis import label_tools as lt
 from .constants import SITE
 
 def get_files(csv_dir):
@@ -85,3 +94,54 @@ def get_complete_mean_df(csv_dir):
     nmi_mean, nmi_name = get_nmi_mean(csv_dir)
     new_df[nmi_name] = nmi_mean
     return new_df
+
+def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:int, dr:str, num_clusters:int, cluster_alg:str):
+    with open(encoding_path, 'rb') as f:
+        data = pickle.load(f)
+    with open(le_path, 'rb') as l:
+        le = pickle.load(l)
+    
+    fc1 = data['features']
+    labels = data['labels']
+    y_gt = le.transform(labels)
+    
+    interval_values = []
+    all_means = []
+    reduced = 0 # only for initilization
+    if dr == 'pca':
+        pca = PCA(n_components=0.95, svd_solver='full', whiten=True)
+        pca.fit(fc1)
+        reduced = pca.fit_transform(fc1)
+    for SEED in (pbar := tqdm(range(len(RANDOM_SEEDS)))):
+        pbar.set_description(f"Processing number {SEED}")
+        if dr == 'umap':
+            reducer = umap.UMAP(n_components=2, metric='cosine', random_state=RANDOM_SEEDS[SEED])
+            reduced = reducer.fit_transform(fc1)
+        if cluster_alg == 'k-means++':
+            model = KMeans(n_clusters=num_clusters, init='k-means++', n_init=500, random_state=RANDOM_SEEDS[SEED])
+            model.fit(reduced)
+            labels_unmatched = model.labels_
+        elif cluster_alg == 'fc-means':
+            model = FCM(n_clusters=num_clusters, random_state=RANDOM_SEEDS[SEED])
+            model.fit(reduced)
+            labels_unmatched = model.predict(reduced)
+        elif cluster_alg == 'agglo':
+            model = AgglomerativeClustering(n_clusters=num_clusters)
+            model.fit(reduced)
+            labels_unmatched = model.labels_
+        elif cluster_alg == 'optics':
+            model = OPTICS(min_samples=5).fit(reduced)
+            labels_unmatched = model.labels_
+        y_pred = lt.label_matcher(labels_unmatched, y_gt)
+        interval_values.append(f1_score(y_gt, y_pred, average='micro'))
+        SEED = SEED +1
+        if SEED % n_interval == 0:
+            mean_res = np.mean(interval_values)
+            all_means.append(mean_res)
+            interval_values = []
+            SEED = SEED -1
+    if shapiro(all_means)[1] > 0.05:
+        print("data follows normal distribution")
+    else:
+        print("no normal distribution!")
+    return all_means
