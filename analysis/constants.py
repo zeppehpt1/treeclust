@@ -21,7 +21,4 @@ SITE = 'Bamberg_Stadtwald'
 NUMBER_OF_CLASSES = 9 # stadtwald 13 gt classes
 #NUMBER_OF_CLASSES = 8 # Tretzendorf 9 gt classes
 
-# for each dataset
-# adjust num of classes
-# adjust mapping function in features.py
-# adjust split of name in features.py
+# NUMBER represents the number of appearing classes after the extraction of the single tree images

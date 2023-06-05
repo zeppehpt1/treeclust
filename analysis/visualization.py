@@ -4,7 +4,7 @@ import umap
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import cluster
+from . import cluster
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import classification_report, confusion_matrix
