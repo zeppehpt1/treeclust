@@ -210,6 +210,7 @@ def optics(reduced_f, y_gt, RANDOM_SEED):
     return y_pred, micro_f1_score, macro_f1_score, weighted_f1_score, f_star, cohen_kappa, mcc, nmi, num_pred_species
 
 def get_cluster_res(reduced_f, y_gt, RANDOM_SEED):
+    # TODO: make cluster algorithms flexible usable
     fns = [mean_shift, k_means, agglo_cl, fuzzy_c_means, optics]
     fns_idents = ['mean-shift', 'k-means++', 'agglo', 'fc-means', 'optics']
     cluster_techniques = []

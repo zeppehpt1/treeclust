@@ -40,8 +40,9 @@ def load_images_as_tensors(files, image_size):
     image_tensors = [alter_image(image, image_size) for image in files]
     return image_tensors
 
-def extract_numeric_labels(files): return [filename.stem.split('_')[5] for filename in files]
-# mabye adjust number position in filename!
+def extract_numeric_labels(files):
+    return [filename.stem.split('_')[6] for filename in files]
+# mabye adjust number position in filename when attribute error!
 # 6 schiefer
 # 5 stadtwald
 
@@ -96,6 +97,7 @@ def convert_number_to_str(labels): # all schiefer
         '19':'Sorbus torminalis',
         '20':'Ulmus',
         '21':'Acer platanoides',
+        '22':'Quercus rubra'
         }
         updated_labels = (pd.Series(labels)).map(update)
         species_labels = list(updated_labels)

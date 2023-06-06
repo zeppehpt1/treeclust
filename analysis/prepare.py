@@ -119,7 +119,7 @@ def clip_crown_from_raster(img_path:str, ortho_mask_tif:str, polygon, out_file_s
     data_array = ortho_mask_out
     highest_pixel_value = highest_pixel_count(data_array) # ensures to discard black and white majority of pixels
     # check for polygons outside of ground truth area and invalid ones (black, white and forest floor pixels are discarded)
-    if highest_pixel_value == 9999:
+    if highest_pixel_value == 9999 or math.isnan(highest_pixel_value):
         return
     
     # get original polygon mask

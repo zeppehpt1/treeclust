@@ -20,7 +20,7 @@ def get_files(csv_dir):
 def get_basic_df(csv_dir):
     csv_files = get_files(csv_dir)
     df = pd.read_pickle(csv_files[0]) # beware change!
-    new_df = df.get(['Preprocess', 'CNN', 'DR', 'Clustering', 'Pred labels', 'Pred species'])
+    new_df = df.get(['Preprocess', 'CNN', 'DR', 'Clustering']) # or include pred labels with 'Pred labels'
     return new_df
 
 def get_single_column_dfs(csv_dir, column_name:str):
@@ -37,6 +37,13 @@ def get_mean_values(dfs):
     sum_column = sum(dfs) / divisor
     return sum_column
 
+def get_pred_spec_mean(csv_dir):
+    column_name = 'Pred species'
+    dfs = get_single_column_dfs(csv_dir, column_name)
+    column = round(get_mean_values(dfs))
+    new_c_name = 'Mean(r) species'
+    return column, new_c_name
+
 def get_micro_f1_mean(csv_dir): # is essentially 'accuracy' in a multi-class scenario
     column_name = 'Micro F1-Score'
     dfs = get_single_column_dfs(csv_dir, column_name)
@@ -49,6 +56,13 @@ def get_macro_f1_mean(csv_dir):
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = get_mean_values(dfs)
     new_c_name = 'Mean Macro F1-Score'
+    return column, new_c_name
+
+def get_weighted_f1_mean(csv_dir):
+    column_name = 'Weighted F1-Score'
+    dfs = get_single_column_dfs(csv_dir, column_name)
+    column = get_mean_values(dfs)
+    new_c_name = 'Mean Weighted F1-Score'
     return column, new_c_name
 
 def get_f_star_mean(csv_dir):
@@ -81,10 +95,14 @@ def get_nmi_mean(csv_dir):
 
 def get_complete_mean_df(csv_dir):
     new_df = get_basic_df(csv_dir)
+    pred_mean, pred_name = get_pred_spec_mean(csv_dir)
+    new_df[pred_name] = pred_mean
     micro_mean, micro_name = get_micro_f1_mean(csv_dir)
     new_df[micro_name] = micro_mean
     macro_mean, macro_name = get_macro_f1_mean(csv_dir)
     new_df[macro_name] = macro_mean
+    weighted_mean, weighted_name = get_weighted_f1_mean(csv_dir)
+    new_df[weighted_name] = weighted_mean
     f_star_mean, f_star_name = get_f_star_mean(csv_dir)
     new_df[f_star_name] = f_star_mean
     cohen_kappa_mean, cohen_kappa_name = get_cohen_kappa_mean(csv_dir)

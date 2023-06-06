@@ -15,11 +15,11 @@ from tqdm import tqdm
 
 def main():
     #schiefer
-    # site_folder = '/home/richard/data/' + SITE + '/'
-    # orthophoto_dir = site_folder + 'ortho_tiles/'
-    # gt_mask_dir = site_folder + 'gt_masks/'
-    # prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
-    # # gt_annotations_dir = "" # optional
+    site_folder = '/home/richard/data/' + SITE + '/'
+    orthophoto_dir = site_folder + 'ortho_tiles/'
+    gt_mask_dir = site_folder + 'gt_masks/'
+    prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
+    # gt_annotations_dir = "" # optional
     
     # stadtwald
     # site_folder = '/home/richard/data/' + SITE + '/'
@@ -28,12 +28,12 @@ def main():
     # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
     # # gt_annotations_dir = "" # optional
     
-    # # tretzendorf
-    site_folder = '/home/richard/data/' + SITE + '/'
-    orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
-    gt_mask_dir = site_folder + 'gt_masks/'
-    prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
-    # gt_annotations_dir = "" # optional
+    # # # tretzendorf
+    # site_folder = '/home/richard/data/' + SITE + '/'
+    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
+    # gt_mask_dir = site_folder + 'gt_masks/'
+    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
+    # # gt_annotations_dir = "" # optional
     
     # define folders
     encoding_dir = Path(site_folder + 'encodings')
@@ -88,6 +88,7 @@ def main():
             cluster_techniques = []
             micro_f1_scores = []
             macro_f1_scores = []
+            weighted_f1_scores = []
             nmi_scores = []
             y_pred_label_sets = []
             species_pred = []
@@ -119,8 +120,8 @@ def main():
                     # cluser analysis
                     # best k
                     #best_k = cluster.determine_best_k(dr_features)
-                    used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.get_cluster_res(dr_features, y_gt, RANDOM_SEED)
-                    for cl_alg, micro_f1_score, macro_f1_score, f_star_score, cohen_kappa_score, mcc_score, nmi_score, y_pred_label_set, pred_species_num in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species):
+                    used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_weighted_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.get_cluster_res(dr_features, y_gt, RANDOM_SEED)
+                    for cl_alg, micro_f1_score, macro_f1_score, weighted_f1_score, f_star_score, cohen_kappa_score, mcc_score, nmi_score, y_pred_label_set, pred_species_num in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_weighted_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species):
                         # append settings of the run to lists
                         preprocessing_types.append(used_preprocess)
                         cnns.append(used_cnn)
@@ -128,6 +129,7 @@ def main():
                         cluster_techniques.append(cl_alg)
                         micro_f1_scores.append(micro_f1_score)
                         macro_f1_scores.append(macro_f1_score)
+                        weighted_f1_scores.append(weighted_f1_score)
                         f_star_scores.append(f_star_score)
                         cohen_kappa_scores.append(cohen_kappa_score)
                         mcc_scores.append(mcc_score)
@@ -143,6 +145,7 @@ def main():
                     'Clustering': cluster_techniques,
                     'Micro F1-Score': micro_f1_scores,
                     'Macro F1-Score': macro_f1_scores,
+                    'Weighted F1-Score': weighted_f1_scores,
                     'F-Star Score': f_star_scores,
                     'Cohens Kappa': cohen_kappa_scores,
                     'Matthews correlation coefficient': mcc_scores,
