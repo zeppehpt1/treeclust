@@ -114,6 +114,8 @@ def get_complete_mean_df(csv_dir):
     return new_df
 
 def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:int, dr:str, num_clusters:int, cluster_alg:str):
+    assert encoding_path.is_file()
+    assert le_path.is_file()
     with open(encoding_path, 'rb') as f:
         data = pickle.load(f)
     with open(le_path, 'rb') as l:
@@ -125,7 +127,7 @@ def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:in
     
     interval_values = []
     all_means = []
-    reduced = 0 # only for initilization
+    reduced = 0 # only for initilization purposes
     if dr == 'pca':
         pca = PCA(n_components=0.95, svd_solver='full', whiten=True)
         pca.fit(fc1)

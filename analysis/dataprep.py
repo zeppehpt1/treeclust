@@ -1,10 +1,12 @@
 import geopandas as gpd
 import pandas as pd
 import numpy as np
+import rioxarray
 
 from glob import glob
 from pathlib import Path
 from tqdm import tqdm
+from geocube.api.core import make_geocube
 
 from analysis import prepare
 
@@ -95,10 +97,10 @@ def clean_entries(geo_df):
     searchfor = ['?', '? (abgängig)', 'agus sylvatica']
     return geo_df[~geo_df.isin(searchfor).any(axis=1)]
 
-def clip_poly_from_aoi(aois_dir, gt_filepath, name_base:str):
-    labels = gpd.read_file(gt_filepath)
+def clip_poly_from_aoi(aois_dir, gt_crowns_filepath, name_base:str):
+    labels = gpd.read_file(gt_crowns_filepath)
     aoi_files = sorted(glob(aois_dir + '/*.gpkg'))
-    out_dir = Path(gt_filepath).parent
+    out_dir = Path(gt_crowns_filepath).parent
     name_base = name_base
     index = 0
     for aoi_file in aoi_files:
@@ -134,6 +136,40 @@ def create_aoi_ortho_tiles(aois_dir, ortho_filepath, name_base:str):
         except ValueError:
             index = index + 1
             continue
+
+def extract_polys_from_aois(aois_dir, pred_crown_filepath):
+    aois = sorted(glob.glob(aois_dir + '*.gpkg'))
+    pred_crowns = gpd.read_file(pred_crown_filepath)
+    index = 0
+    out_dir = Path(pred_crown_filepath).parent / 'pred_crown_tiles_gt_aois/'
+    name_base = '_pred_crown_aoi.gpkg'
+    for aoi_file in aois:
+        aoi = gpd.read_file(aoi_file)
+        name = out_dir + str(index) + name_base
+        poly_container = []
+        scores = []
+        for poly, score in zip(pred_crowns['geometry'], pred_crowns['Confidence_score']):
+            if aoi['geometry'][0].contains(poly):
+                poly_container.append(poly)
+                scores.append(score)
+        new_df = get_geo_df(poly_container)
+        new_df['Confidence_score'] = scores
+        new_df.to_file(name, driver="GPKG")
+        index = index + 1
+
+def make_image_mask(gt_crown_filepath, ortho_filepath):
+    source_ds = gpd.read_file(gt_crown_filepath)
+    dataset = rioxarray.open_rasterio(ortho_filepath, masked=True)
+    Cube = make_geocube(vector_data=source_ds, like=dataset)
+    out_dir = Path(gt_crown_filepath).parent / 'gt_masks'
+    out_file = str(out_dir) + str(Path(ortho_filepath).stem) + '_mask.tif'
+    Cube['species_ID'].rio.to_raster(out_file)
+
+def make_multiple_image_masks(gt_crowns_dir, orthos_dir):
+    gt_crown_files = sorted(glob.glob(gt_crowns_dir + '*.gpkg'))
+    ortho_files = sorted(glob.glob(orthos_dir + '*.tif'))
+    for gt_crown, ortho in zip(gt_crown_files, ortho_files):
+        make_image_mask(gt_crown, ortho)
 
 def get_species_distribution(crowns_dir, mode:str):
     gt_crown_files = sorted(glob.glob(crowns_dir + '*.gpkg'))

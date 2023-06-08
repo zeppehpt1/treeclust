@@ -14,26 +14,26 @@ from pathlib import Path
 from tqdm import tqdm
 
 def main():
-    #schiefer
+    
+    # #schiefer
+    # site_folder = '/home/richard/data/' + SITE + '/'
+    # orthophoto_dir = site_folder + 'ortho_tiles/'
+    # gt_mask_dir = site_folder + 'gt_masks/'
+    # prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
+    # # gt_annotations_dir = "" # optional
+    
+    # stadtwald & tretzendorf
     site_folder = '/home/richard/data/' + SITE + '/'
-    orthophoto_dir = site_folder + 'ortho_tiles/'
+    orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
     gt_mask_dir = site_folder + 'gt_masks/'
-    prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
+    prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
     # gt_annotations_dir = "" # optional
     
-    # stadtwald
-    # site_folder = '/home/richard/data/' + SITE + '/'
-    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
-    # gt_mask_dir = site_folder + 'gt_masks/'
-    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
-    # # gt_annotations_dir = "" # optional
-    
-    # # # tretzendorf
-    # site_folder = '/home/richard/data/' + SITE + '/'
-    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
-    # gt_mask_dir = site_folder + 'gt_masks/'
-    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
-    # # gt_annotations_dir = "" # optional
+    # stadtwald test set
+    site_folder = '/home/richard/data/' + SITE + '/'
+    orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
+    gt_mask_dir = site_folder + 'gt_masks/'
+    prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
     
     # define folders
     encoding_dir = Path(site_folder + 'encodings')
@@ -65,12 +65,9 @@ def main():
     cnns = ['vgg', 'resnet', 'effnet', 'densenet', 'inception']
     encoding_files = sorted(encoding_dir.glob('*.pickle'))
     if len(encoding_files) != len(cnns) * 2:
-        le_and_encoding_paths = []
         for cnn in cnns:
             clahe_denoising = ft.create_and_save_le_encodings(cnn, first_set, site_folder)
             clahe = ft.create_and_save_le_encodings(cnn, second_set, site_folder)
-            le_and_encoding_paths.append(clahe_denoising)
-            le_and_encoding_paths.append(clahe)
     else:
         print("Encodings already exists")
     
