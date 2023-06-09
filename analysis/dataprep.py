@@ -10,6 +10,9 @@ from geocube.api.core import make_geocube
 
 from analysis import prepare
 
+def remove_intersecting_crowns(larger_geo_df, smaller_geo_df):
+    return larger_geo_df.loc[~larger_geo_df.intersects(smaller_geo_df.unary_union)].reset_index(drop=True)
+
 def get_geo_df(polys, epsg_code:str):
     coords_gdf = gpd.GeoDataFrame(crs=epsg_code, geometry=polys)
     return coords_gdf
@@ -101,12 +104,11 @@ def clip_poly_from_aoi(aois_dir, gt_crowns_filepath, name_base:str):
     labels = gpd.read_file(gt_crowns_filepath)
     aoi_files = sorted(glob(aois_dir + '/*.gpkg'))
     out_dir = Path(gt_crowns_filepath).parent
-    name_base = name_base
     index = 0
     for aoi_file in aoi_files:
         aoi = gpd.read_file(aoi_file)
         geom = aoi['geometry'][0]
-        name = out_dir + str(index) + name_base
+        name = str(out_dir) + str(index) + name_base
         poly_container = []
         species = []
         for poly, instance in zip(labels['geometry'], labels['Art']):
@@ -137,25 +139,35 @@ def create_aoi_ortho_tiles(aois_dir, ortho_filepath, name_base:str):
             index = index + 1
             continue
 
-def extract_polys_from_aois(aois_dir, pred_crown_filepath):
-    aois = sorted(glob.glob(aois_dir + '*.gpkg'))
+def extract_polys_from_aois(aois_dir, pred_crown_filepath, name_base:str, epsg:int, reverse:bool=False):
+    aois = sorted(glob(aois_dir + '*.gpkg'))
     pred_crowns = gpd.read_file(pred_crown_filepath)
     index = 0
     out_dir = Path(pred_crown_filepath).parent / 'pred_crown_tiles_gt_aois/'
-    name_base = '_pred_crown_aoi.gpkg'
     for aoi_file in aois:
         aoi = gpd.read_file(aoi_file)
-        name = out_dir + str(index) + name_base
+        name = str(out_dir) + str(index) + name_base
         poly_container = []
         scores = []
         for poly, score in zip(pred_crowns['geometry'], pred_crowns['Confidence_score']):
-            if aoi['geometry'][0].contains(poly):
-                poly_container.append(poly)
-                scores.append(score)
-        new_df = get_geo_df(poly_container)
+            if reverse == False:
+                if aoi['geometry'][0].contains(poly):
+                    poly_container.append(poly)
+                    scores.append(score)
+            if reverse == True:
+                if not aoi['geometry'][0].contains(poly):
+                    poly_container.append(poly)
+                    scores.append(score)
+                # TODO else implement if it intersects
+        new_df = get_geo_df(poly_container, epsg)
         new_df['Confidence_score'] = scores
         new_df.to_file(name, driver="GPKG")
         index = index + 1
+
+def keep_polygons_outside_aoi(aois_dir, crown_dir, name_base:str, epsg:int):
+    crown_files = sorted(glob(crown_dir + '/*.gpkg'))
+    for crown_file in crown_files:
+        extract_polys_from_aois(aois_dir, crown_file, name_base, epsg, reverse=True)
 
 def make_image_mask(gt_crown_filepath, ortho_filepath):
     source_ds = gpd.read_file(gt_crown_filepath)
@@ -172,7 +184,9 @@ def make_multiple_image_masks(gt_crowns_dir, orthos_dir):
         make_image_mask(gt_crown, ortho)
 
 def get_species_distribution(crowns_dir, mode:str):
-    gt_crown_files = sorted(glob.glob(crowns_dir + '*.gpkg'))
+    gt_crown_files = sorted(glob(crowns_dir + '*.gpkg'))
+    if len(gt_crown_files) == 0:
+        gt_crown_files = sorted(glob(crowns_dir + 'poly*.shp'))
     dfs = [gpd.read_file(gt_file) for gt_file in gt_crown_files]
     concat_df = pd.concat(dfs)
     if mode == 'percent':
