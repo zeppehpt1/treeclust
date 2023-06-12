@@ -53,6 +53,7 @@ def main():
 
     # 1. extract single tree crowns (polygons) from orthophoto
     if not Path(site_folder + 'pred_polygon_clipped_raster_files').exists():
+        Path(site_folder + 'pred_polygon_clipped_raster_files').mkdir(parents=True, exist_ok=True)
         prepare.clip_crown_sets_with_gt_masks(orthophoto_dir, prediction_dir, gt_mask_dir, make_squares=False, step_size=0.5)
     else:
         print("Cropped files already exists")

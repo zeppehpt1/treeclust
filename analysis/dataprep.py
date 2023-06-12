@@ -100,7 +100,29 @@ def clean_entries(geo_df):
     searchfor = ['?', '? (abgängig)', 'agus sylvatica']
     return geo_df[~geo_df.isin(searchfor).any(axis=1)]
 
-def clip_poly_from_aoi(aois_dir, gt_crowns_filepath, name_base:str):
+def clip_poly_from_aoi(aois_dir, gt_crowns_filepath, name_base:str, epsg:int):
+    pred_crowns = gpd.read_file(gt_crowns_filepath)
+    aoi_files = sorted(glob(aois_dir + '/*.gpkg'))
+    out_dir = Path(gt_crowns_filepath) / 'pred_crown_tiles'
+    out_dir.mkdir(parents=True, exist_ok=True)
+    index = 0
+    for aoi_file in aoi_files:
+        aoi = gpd.read_file(aoi_file)
+        geom = aoi['geometry'][0]
+        name = str(out_dir) + '/' + str(index) + name_base + '.gpkg'
+        poly_container = []
+        scores = []
+        for poly, score in zip(pred_crowns['geometry'], pred_crowns['Confidence_score']):
+            if geom.contains(poly):
+                poly_container.append(poly)
+                scores.append(score)
+        new_df = get_geo_df(poly_container, epsg)
+        new_df['Confidence_score'] = scores
+        new_df.to_file(name, driver="GPKG")
+        index = index + 1
+    print("shape file folder", out_dir)
+
+def clip_poly_and_keep_labels_from_aoi_(aois_dir, gt_crowns_filepath, name_base:str, epsg:int):
     labels = gpd.read_file(gt_crowns_filepath)
     aoi_files = sorted(glob(aois_dir + '/*.gpkg'))
     out_dir = Path(gt_crowns_filepath).parent
@@ -112,13 +134,14 @@ def clip_poly_from_aoi(aois_dir, gt_crowns_filepath, name_base:str):
         poly_container = []
         species = []
         for poly, instance in zip(labels['geometry'], labels['Art']):
-            if geom.contains(poly):
+            if not geom.contains(poly):
                 poly_container.append(poly)
                 species.append(instance)
-        new_df = get_geo_df(poly_container)
+        new_df = get_geo_df(poly_container, epsg)
         new_df['species'] = species
         new_df['species_ID'] = 1
         
+        #TODO only rempa and clean entries on adjusted gt file, species mapping via mask file
         new_df = remap_tree_species(new_df)
         new_df = clean_entries(new_df)
 
@@ -164,10 +187,9 @@ def extract_polys_from_aois(aois_dir, pred_crown_filepath, name_base:str, epsg:i
         new_df.to_file(name, driver="GPKG")
         index = index + 1
 
-def keep_polygons_outside_aoi(aois_dir, crown_dir, name_base:str, epsg:int):
-    crown_files = sorted(glob(crown_dir + '/*.gpkg'))
-    for crown_file in crown_files:
-        extract_polys_from_aois(aois_dir, crown_file, name_base, epsg, reverse=True)
+def remove_polygons_inside_aoi():
+    #TODO übertrage funktion
+    return
 
 def make_image_mask(gt_crown_filepath, ortho_filepath):
     source_ds = gpd.read_file(gt_crown_filepath)

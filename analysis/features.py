@@ -113,6 +113,7 @@ def convert_number_to_str(labels): # all schiefer
         '18':'Lbh',
         '19':'Sorbus torminalis',
         '20':'Ulmus',
+        '22':'Quercus rubra'
         }
         updated_labels = (pd.Series(labels)).map(update)
         species_labels = list(updated_labels)
