@@ -77,7 +77,7 @@ def convert_number_to_str(labels): # all schiefer
         '12':'Picea_abies',
         '13':'Pinus_sylvestris',
         '14':'Pseudotsuga_menziesii',
-        '15':'Betula pendula'
+        '15':'Betula_pendula'
         }
         updated_labels = (pd.Series(labels)).map(update)
         species_labels = list(updated_labels)
@@ -94,10 +94,10 @@ def convert_number_to_str(labels): # all schiefer
         '14':'Pseudotsuga_menziesii',
         '16':'Tilia',
         '18':'Lbh',
-        '19':'Sorbus torminalis',
+        '19':'Sorbus_torminalis',
         '20':'Ulmus',
-        '21':'Acer platanoides',
-        '22':'Quercus rubra'
+        '21':'Acer_platanoides',
+        '22':'Quercus_rubra'
         }
         updated_labels = (pd.Series(labels)).map(update)
         species_labels = list(updated_labels)
@@ -111,9 +111,9 @@ def convert_number_to_str(labels): # all schiefer
         '12':'Picea_abies',
         '13':'Pinus_sylvestris',
         '18':'Lbh',
-        '19':'Sorbus torminalis',
+        '19':'Sorbus_torminalis',
         '20':'Ulmus',
-        '22':'Quercus rubra'
+        '22':'Quercus_rubra'
         }
         updated_labels = (pd.Series(labels)).map(update)
         species_labels = list(updated_labels)
