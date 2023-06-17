@@ -81,6 +81,7 @@ fifth = calc_multiple_means('/home/richard/data/Bamberg_Stadtwald/encodings/vgg_
 stadtwald_runs = [best, second, third, fourth, fifth]
 with open('data/stadtwald_res_50_means_V2', 'wb') as f:
     pickle.dump(stadtwald_runs, f)
+print("Stadtwald analyzed")
     
 ################################################
 
@@ -102,3 +103,4 @@ fifth = calc_multiple_means('/home/richard/data/Tretzendorf/encodings/resnet_cla
 tretzendorf_runs = [best, second, third, fourth, fifth]
 with open('data/tretzendorf_res_50_means_V2', 'wb') as f:
     pickle.dump(tretzendorf_runs, f)
+print("Tretzendorf analyzed")

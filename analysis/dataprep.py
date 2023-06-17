@@ -29,71 +29,44 @@ def extract_single_polygons(aoi_filepath, epsg_code):
     print("aoi files destinations", out_dir)
 
 def remap_tree_species(geo_df):
-    remapped_shp_file = geo_df
-    # remap species name
-    m = remapped_shp_file['species'] == 'Pinus sylvestris (abgängig)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    m = remapped_shp_file['species'] == 'Pinus sylvestris (tot)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    m = remapped_shp_file['species'] == 'Picea abies (abgängig)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    m = remapped_shp_file['species'] == 'Picea abies (tot)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    m = remapped_shp_file['species'] == 'Fagus sylvatica (abgängig)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    m = remapped_shp_file['species'] == 'agus sylvatica'
-    remapped_shp_file.loc[m, 'species'] = 'Fagus sylvatica'
-    m = remapped_shp_file['species'] == 'Fagus sylvatica (tot)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    m = remapped_shp_file['species'] == 'Larix (abgängig)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    m = remapped_shp_file['species'] == 'Quercus'
-    remapped_shp_file.loc[m, 'species'] = 'Quercus spec.'
-    m = remapped_shp_file['species'] == 'Larix'
-    remapped_shp_file.loc[m, 'species'] = 'Larix decidua'
-    m = remapped_shp_file['species'] == 'Pseudotsuga mentiesii'
-    remapped_shp_file.loc[m, 'species'] = 'Pseudotsuga menziesii'
-    m = remapped_shp_file['species'] == 'Quercus (abgängig)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    m = remapped_shp_file['species'] == 'Acer'
-    remapped_shp_file.loc[m, 'species'] = 'Acer pseudoplatanus'
-    m = remapped_shp_file['species'] == 'Lbh (abgängig)'
-    remapped_shp_file.loc[m, 'species'] = 'deadwood'
-    # remap species id
-    m = remapped_shp_file['species'] == 'deadwood'
-    remapped_shp_file.loc[m, 'species_ID'] = 8
-    m = remapped_shp_file['species'] == 'Abies alba'
-    remapped_shp_file.loc[m, 'species_ID'] = 10
-    m = remapped_shp_file['species'] == 'Larix decidua'
-    remapped_shp_file.loc[m, 'species_ID'] = 11
-    m = remapped_shp_file['species'] == 'Picea abies'
-    remapped_shp_file.loc[m, 'species_ID'] = 12
-    m = remapped_shp_file['species'] == 'Pinus sylvestris'
-    remapped_shp_file.loc[m, 'species_ID'] = 13
-    m = remapped_shp_file['species'] == 'Pseudotsuga menziesii'
-    remapped_shp_file.loc[m, 'species_ID'] = 14
-    m = remapped_shp_file['species'] == 'forest floor'
-    remapped_shp_file.loc[m, 'species_ID'] = 9
-    m = remapped_shp_file['species'] == 'Acer pseudoplatanus'
-    remapped_shp_file.loc[m, 'species_ID'] = 2
-    m = remapped_shp_file['species'] == 'Fraxinus excelsior'
-    remapped_shp_file.loc[m, 'species_ID'] = 5
-    m = remapped_shp_file['species'] == 'Fagus sylvatica'
-    remapped_shp_file.loc[m, 'species_ID'] = 4
-    m = remapped_shp_file['species'] == 'Quercus spec.'
-    remapped_shp_file.loc[m, 'species_ID'] = 6
-    m = remapped_shp_file['species'] == 'Tilia'
-    remapped_shp_file.loc[m, 'species_ID'] = 16
-    m = remapped_shp_file['species'] == 'Lbh'
-    remapped_shp_file.loc[m, 'species_ID'] = 18
-    m = remapped_shp_file['species'] == 'Sorbus torminalis'
-    remapped_shp_file.loc[m, 'species_ID'] = 19
-    m = remapped_shp_file['species'] == 'Ulmus'
-    remapped_shp_file.loc[m, 'species_ID'] = 20
-    m = remapped_shp_file['species'] == 'Acer platanoides'
-    remapped_shp_file.loc[m, 'species_ID'] = 21
-    m = remapped_shp_file['species'] == 'Quercus rubra'
-    remapped_shp_file.loc[m, 'species_ID'] = 22
+    species_map = {
+        'Pinus sylvestris (abgängig)': 'deadwood',
+        'Pinus sylvestris (tot)': 'deadwood',
+        'Picea abies (abgängig)': 'deadwood',
+        'Picea abies (tot)': 'deadwood',
+        'Fagus sylvatica (abgängig)': 'deadwood',
+        'agus sylvatica': 'Fagus sylvatica',
+        'Fagus sylvatica (tot)': 'deadwood',
+        'Larix (abgängig)': 'deadwood',
+        'Quercus': 'Quercus spec.',
+        'Larix': 'Larix decidua',
+        'Pseudotsuga mentiesii': 'Pseudotsuga menziesii',
+        'Quercus (abgängig)': 'deadwood',
+        'Acer': 'Acer pseudoplatanus',
+        'Lbh (abgängig)': 'deadwood'
+    }
+    species_id_map = {
+        'deadwood': 8,
+        'Abies alba': 10,
+        'Larix decidua': 11,
+        'Picea abies': 12,
+        'Pinus sylvestris': 13,
+        'Pseudotsuga menziesii': 14,
+        'forest floor': 9,
+        'Acer pseudoplatanus': 2,
+        'Fraxinus excelsior': 5,
+        'Fagus sylvatica': 4,
+        'Quercus spec.': 6,
+        'Tilia': 16,
+        'Lbh': 18,
+        'Sorbus torminalis': 19,
+        'Ulmus': 20,
+        'Acer platanoides': 21,
+        'Quercus rubra': 22
+    }
+    remapped_shp_file = geo_df.copy()
+    remapped_shp_file['species'] = remapped_shp_file['species'].map(species_map)
+    remapped_shp_file['species_ID'] = remapped_shp_file['species'].map(species_id_map)
     return remapped_shp_file
 
 def clean_entries(geo_df):

@@ -114,8 +114,8 @@ def get_complete_mean_df(csv_dir):
     return new_df
 
 def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:int, dr:str, num_clusters:int, cluster_alg:str):
-    assert encoding_path.is_file()
-    assert le_path.is_file()
+    assert Path(encoding_path).is_file(), "encoding file should exist"
+    assert Path(le_path).is_file(), "label encoding file should exist"
     with open(encoding_path, 'rb') as f:
         data = pickle.load(f)
     with open(le_path, 'rb') as l:

@@ -42,6 +42,7 @@ def load_images_as_tensors(files, image_size):
 
 def extract_numeric_labels(files):
     return [filename.stem.split('_')[6] for filename in files]
+# TODO: use consistent position for the ID
 # mabye adjust number position in filename when attribute error!
 # 6 schiefer
 # 5 stadtwald
@@ -65,6 +66,7 @@ def extract_numeric_labels(files):
 # # adjust species according to analyzed sites
 
 def convert_number_to_str(labels): # all schiefer
+#TODO only one scheme for all datasets, it doesn't matter if one number is not present in the dataset
     if SITE == 'Schiefer':
         update = {
         #'2':'Acer pseudoplatanus', not appears
@@ -86,12 +88,15 @@ def convert_number_to_str(labels): # all schiefer
         update = {
         '2':'Acer pseudoplatanus',
         '4':'Fagus_sylvatica',
+        '5':'Fraxinus_excelsior',
         '6':'Quercus_spec',
         '8':'deadwood',
+        '10':'Abies_alba',
         '11':'Larix_decidua',
         '12':'Picea_abies',
         '13':'Pinus_sylvestris',
         '14':'Pseudotsuga_menziesii',
+        '15':'Betula pendula',
         '16':'Tilia',
         '18':'Lbh',
         '19':'Sorbus_torminalis',
