@@ -123,7 +123,6 @@ def convert_number_to_str(labels): # all schiefer
         updated_labels = (pd.Series(labels)).map(update)
         species_labels = list(updated_labels)
         return species_labels
-# adjust species according to analyzed sites
 
 def encode_labels(labels):
     le = lt.CustomLabelEncoder()
@@ -137,7 +136,7 @@ def save_le(le, le_path):
 
 #________________________________________
 
-# define fe model for vgg16
+# define feature extraction model for vgg16
 class FeatureExtractor(nn.Module):
   def __init__(self, model):
     super(FeatureExtractor, self).__init__()

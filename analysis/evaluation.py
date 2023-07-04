@@ -165,3 +165,5 @@ def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:in
     else:
         print("no normal distribution!")
     return all_means
+
+# TODO insert calculate IoU function from notebook
