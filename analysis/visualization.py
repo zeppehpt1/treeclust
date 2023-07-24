@@ -1,14 +1,19 @@
 import skimage
 import pickle
+import cv2
 import umap
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import pandas as pd
+import skimage.exposure as skie
 from . import cluster
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import classification_report, confusion_matrix
 from PIL import Image
+
+import label_tools as lt
 
 
 def pretty_cm(cm, labelnames, cscale=0.6, ax0=None, fs=5, cmap='cool'):
@@ -87,7 +92,7 @@ def cm_plot(y_gt, y_pred, le_file_path):
     CM = confusion_matrix(y_gt, y_pred)
     pretty_cm(CM, labels_ordered)
     
-def pano_plot(features, dr_technique:str):
+def pano_plot(features, dr_technique:str, files):
     if dr_technique == 'pca':
         pca_nw = PCA(n_components=0.95, svd_solver='full', whiten=False, random_state=42)
         reduced = pca_nw.fit_transform(features)
@@ -113,38 +118,56 @@ def pano_plot(features, dr_technique:str):
     plt.grid(None)
     return
 
-def tsne_plot():
+def tsne_plot(features, files, labels, labels_ordered):
+    pca_nw = PCA(n_components=0.95, svd_solver='full', whiten=False, random_state=42)
+    x_nw = pca_nw.fit_transform(features)
+    X = np.array(x_nw)
+    tsne = TSNE(n_components=2, random_state=567).fit_transform(X)
+    tx, ty = tsne[:,0], tsne[:,1]
+
+    tx = (tx-np.min(tx)) / (np.max(tx) - np.min(tx))
+    ty = (ty-np.min(ty)) / (np.max(ty) - np.min(ty))
+    
+    labels_ordered = lt.inverse_transform(range(len(lt.mapper)))
+    df = pd.DataFrame({'files': files,
+                    'x_nw':tx,
+                    'y_nw':ty,
+                    'labels': labels,
+                    },
+                    index=files)
+
+    fig, ax = plt.subplots(1,1,figsize=(6,3), dpi=150)
+    sns.scatterplot(data=df, x='x_nw', y='y_nw', hue='labels', palette='tab10', hue_order=labels_ordered)
+    ax.get_legend().remove()
+    ax.legend(bbox_to_anchor=(1.05,1))
+    ax.set_title('t-sne')
+    fig.tight_layout()
+    plt.show()
     return
 
-# def gt_and_pred_plot(reduced, y_gt, y_pred, le_file_path):
-#     le = cluster.load_le(le_file_path)
-#     labels_ordered = le.inverse_transform(range(len(le.mapper)))
-#     df = pd.DataFrame({'files': files,
-#                     'x_nw':reduced[:,0],
-#                     'y_nw':reduced[:,1],
-#                     'labels': labels,
-#                     },
-#                     index=files)
+def clahe_plot(img_filepath):
+    img = cv2.imread(img_filepath)
+    fig, (ax0) = plt.subplots(ncols=1, sharex=True, sharey=True)
+    img0 = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img0 = ax0.imshow(skie.equalize_adapthist(img0))
+    ax0.set_title("")
+    ax0.axis("off")
+    return
 
-#     y_pred_str = le.inverse_transform(y_pred)
-#     y_gt_str = le.inverse_transform(y_gt)
-#     df['y_pred_labels'] = pd.Series(y_pred_str, index=files)
-
-#     fig, ax = plt.subplots(1,2, figsize=(8,5), dpi=150)
-
-
-#     sns.scatterplot(data=df, x='x_nw', y='y_nw', hue='labels', palette='tab10', hue_order=labels_ordered, ax=ax[0]) # ground truth labels
-#     sns.scatterplot(data=df, x='x_nw', y='y_nw', hue='y_pred_labels', palette='tab10', hue_order=labels_ordered, ax=ax[1]) # predicted labels
-
-#     ax[0].get_legend().remove()
-#     ax[1].legend(bbox_to_anchor=(1.05,1))
-#     ax[0].set_title('ground truth labels')
-#     ax[1].set_title('predicted labels')
-#     fig.tight_layout()
-#     plt.show()
-#     return
-
-
+def clahe_denoising_plot(img_filepath):
+    img = cv2.imread(img_filepath)
+    fig, (ax0) = plt.subplots(ncols=1, sharex=True, sharey=True)
+    img2 = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img2 = skie.equalize_adapthist(img2)
+    img2 = cv2.normalize(img2, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+    img2 = img2.astype(np.uint8)
+    img2 = cv2.cvtColor(img2, cv2.COLOR_RGB2BGR)
+    img2 = cv2.fastNlMeansDenoisingColored(img2, None,10,10,7,21)
+    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+    img2 = ax0.imshow(img2, cmap=plt.cm.gray)
+    ax0.set_title("")
+    ax0.axis("off")
+    return
 
 if __name__ == "__main__":
     print("hey")

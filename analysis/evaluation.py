@@ -120,11 +120,9 @@ def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:in
         data = pickle.load(f)
     with open(le_path, 'rb') as l:
         le = pickle.load(l)
-    
     fc1 = data['features']
     labels = data['labels']
     y_gt = le.transform(labels)
-    
     interval_values = []
     all_means = []
     reduced = 0 # only for initilization purposes
@@ -166,4 +164,33 @@ def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:in
         print("no normal distribution!")
     return all_means
 
-# TODO insert calculate IoU function from notebook
+def calculate_iou(polygon1, polygon2):
+    intersection = polygon1.intersection(polygon2).area
+    union = polygon1.union(polygon2).area
+    iou = intersection / union
+    return iou
+
+def calculate_mean_iou_for_multiple_polygons(gt_df, pred_df):
+    iou_scores = []
+    errors = 0
+    for gt_poly in gt_df['geometry']:
+        for pred_poly in pred_df['geometry']:
+            try:
+                iou_score = calculate_iou(gt_poly, pred_poly)
+                if iou_score != 0.0 and iou_score > 0.4:
+                    iou_scores.append(iou_score)
+            except:
+                errors = errors + 1
+        return sum(iou_scores) / len(iou_scores)
+
+# tp = number of correct crowns above the threshold
+# fp = number of crowns below the threshold (number of predicted crowns - number of iou scores above threshold)
+# fn = number of missing crowns (number of ground truth crowns - number of iou scores above threshold)
+def precision(tp, fp):
+    return tp / tp + fp
+
+def recall(tp, fn):
+    return tp / tp + fn
+
+def calculate_object_detection_f1_score(precision, recall):
+    return 2*precision*recall / (precision + recall)
