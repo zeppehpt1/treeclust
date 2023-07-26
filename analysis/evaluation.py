@@ -3,7 +3,6 @@ import umap
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from glob import glob
 from tqdm import tqdm
 from fcmeans import FCM
 from scipy.stats import shapiro

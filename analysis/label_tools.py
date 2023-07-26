@@ -1,9 +1,5 @@
 import numpy as np
 
-from sklearn.metrics import classification_report
-import matplotlib.pyplot as plt
-import skimage
-
 class CustomLabelEncoder:
     """
     Creates a mapping between string labels and integer class clabels for working with categorical data.

@@ -1,5 +1,3 @@
-import skimage
-import pickle
 import cv2
 import umap
 import matplotlib.pyplot as plt
@@ -10,10 +8,10 @@ import skimage.exposure as skie
 from . import cluster
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import confusion_matrix
 from PIL import Image
 
-import label_tools as lt
+from analysis import label_tools as lt
 
 
 def pretty_cm(cm, labelnames, cscale=0.6, ax0=None, fs=5, cmap='cool'):
@@ -92,16 +90,8 @@ def cm_plot(y_gt, y_pred, le_file_path):
     CM = confusion_matrix(y_gt, y_pred)
     pretty_cm(CM, labels_ordered)
     
-def pano_plot(features, dr_technique:str, files):
-    if dr_technique == 'pca':
-        pca_nw = PCA(n_components=0.95, svd_solver='full', whiten=False, random_state=42)
-        reduced = pca_nw.fit_transform(features)
-    elif dr_technique == 'tsne':
-        reducer = umap.UMAP(n_components=2, metric='cosine', random_state=825765)
-        reduced = reducer.fit_transform(features)
-    X = np.array(reduced)
-    tsne = TSNE(n_components=2, random_state=567).fit_transform(X)
-    tx, ty = tsne[:,0], tsne[:,1]
+def pano_plot(features, files):
+    tx, ty = features[:,0], features[:,1]
     tx = (tx-np.min(tx)) / (np.max(tx) - np.min(tx))
     ty = (ty-np.min(ty)) / (np.max(ty) - np.min(ty))
     width = 4000
