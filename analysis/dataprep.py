@@ -32,18 +32,37 @@ def remap_tree_species(geo_df):
     species_map = {
         'Pinus sylvestris (abgängig)': 'deadwood',
         'Pinus sylvestris (tot)': 'deadwood',
+        'Pinus sylvestris (abgämgig)': 'deadwood',
+        'Pinus sylvestris (abgängig': 'deadwood',
+        'Pinus sylvestris (abgäggig)': 'deadwood',
         'Picea abies (abgängig)': 'deadwood',
         'Picea abies (tot)': 'deadwood',
+        'Picea abioes (abgängig)': 'deadwood',
         'Fagus sylvatica (abgängig)': 'deadwood',
         'agus sylvatica': 'Fagus sylvatica',
         'Fagus sylvatica (tot)': 'deadwood',
+        'Fagus sylvatic': 'Fagus sylvatica',
+        'Fagus sylvatica (angängig)': 'deadwood',
         'Larix (abgängig)': 'deadwood',
         'Quercus': 'Quercus spec.',
-        'Larix': 'Larix decidua',
-        'Pseudotsuga mentiesii': 'Pseudotsuga menziesii',
         'Quercus (abgängig)': 'deadwood',
+        'Larix': 'Larix decidua',
+        'Larix (tot)': 'deadwood',
+        'Pseudotsuga mentiesii': 'Pseudotsuga menziesii',
         'Acer': 'Acer pseudoplatanus',
-        'Lbh (abgängig)': 'deadwood'
+        'Lbh (abgängig)': 'deadwood',
+        '? (abgängig)': 'deadwood',
+        'Pseudotsuga menziesii (abgängig)': 'deadwood',
+        'Pinus': 'Pinus sylvestris',
+        'ABies alba': 'Abies alba',
+        'Abies alba (abgängig)': 'Abies alba',
+        'QUercus': 'Quercus',
+        'Pseudotszga menziesii': 'Pseudotsuga menziesii',
+        'Pseudotsugs menziesii': 'Pseudotsuga menziesii',
+        'LBH': 'Lbh',
+        'Lnh': 'Lbh',
+        'Lbh (abgöngig)': 'deadwood',
+        'lbh': 'deadwood'
     }
     species_id_map = {
         'deadwood': 8,
@@ -62,7 +81,8 @@ def remap_tree_species(geo_df):
         'Sorbus torminalis': 19,
         'Ulmus': 20,
         'Acer platanoides': 21,
-        'Quercus rubra': 22
+        'Quercus rubra': 22,
+        'Ndh': 23,
     }
     remapped_shp_file = geo_df.copy()
     remapped_shp_file['species'] = remapped_shp_file['species'].map(species_map)
@@ -95,6 +115,7 @@ def clip_poly_from_aoi(aois_dir, gt_crowns_filepath, name_base:str, epsg:int):
         index = index + 1
     print("shape file folder", out_dir)
 
+# TODO improve secondary function, use single clip_poly_from_aoi as baseline function
 def clip_poly_and_keep_labels_from_aoi_(aois_dir, gt_crowns_filepath, name_base:str, epsg:int):
     labels = gpd.read_file(gt_crowns_filepath)
     aoi_files = sorted(glob(aois_dir + '/*.gpkg'))
