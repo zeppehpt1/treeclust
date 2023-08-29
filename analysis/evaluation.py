@@ -2,7 +2,10 @@ import pickle
 import umap
 import numpy as np
 import pandas as pd
-from pathlib import Path
+from pandas import DataFrame
+from typing import Tuple, Union
+from geopandas import GeoDataFrame
+from pathlib import Path, PosixPath
 from tqdm import tqdm
 from fcmeans import FCM
 from scipy.stats import shapiro
@@ -13,16 +16,16 @@ from sklearn.metrics import f1_score
 from analysis import label_tools as lt
 from .constants import SITE
 
-def get_files(csv_dir):
+def get_files(csv_dir: Union[str, PosixPath]) -> list:
     return sorted(csv_dir.glob(('*_' + SITE + '_analysis.pickle')))
 
-def get_basic_df(csv_dir):
+def get_basic_df(csv_dir: Union[str, PosixPath]) -> DataFrame:
     csv_files = get_files(csv_dir)
     df = pd.read_pickle(csv_files[0]) # beware change!
     new_df = df.get(['Preprocess', 'CNN', 'DR', 'Clustering']) # or include pred labels with 'Pred labels'
     return new_df
 
-def get_single_column_dfs(csv_dir, column_name:str):
+def get_single_column_dfs(csv_dir: Union[str, PosixPath], column_name:str) -> list:
     csv_files = get_files(csv_dir)
     dfs = []
     for csv in csv_files:
@@ -31,68 +34,68 @@ def get_single_column_dfs(csv_dir, column_name:str):
         dfs.append(df[column_name])
     return dfs
 
-def get_mean_values(dfs):
+def get_mean_values(dfs:list) -> Union[float, int]:
     divisor = len(dfs)
     sum_column = sum(dfs) / divisor
     return sum_column
 
-def get_pred_spec_mean(csv_dir):
+def get_pred_spec_mean(csv_dir: Union[str, PosixPath]) -> Tuple[list, str]:
     column_name = 'Pred species'
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = round(get_mean_values(dfs))
     new_c_name = 'Mean(r) species'
     return column, new_c_name
 
-def get_micro_f1_mean(csv_dir): # is essentially 'accuracy' in a multi-class scenario
+def get_micro_f1_mean(csv_dir: Union[str, PosixPath]) -> Tuple[list, str]: # is essentially 'accuracy' in a multi-class scenario
     column_name = 'Micro F1-Score'
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = get_mean_values(dfs)
     new_c_name = 'Mean Micro F1-Score'
     return column, new_c_name
 
-def get_macro_f1_mean(csv_dir):
+def get_macro_f1_mean(csv_dir: Union[str, PosixPath]) -> Tuple[list, str]:
     column_name = 'Macro F1-Score'
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = get_mean_values(dfs)
     new_c_name = 'Mean Macro F1-Score'
     return column, new_c_name
 
-def get_weighted_f1_mean(csv_dir):
+def get_weighted_f1_mean(csv_dir: Union[str, PosixPath]) -> Tuple[list, str]:
     column_name = 'Weighted F1-Score'
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = get_mean_values(dfs)
     new_c_name = 'Mean Weighted F1-Score'
     return column, new_c_name
 
-def get_f_star_mean(csv_dir):
+def get_f_star_mean(csv_dir: Union[str, PosixPath]) -> Tuple[list, str]:
     column_name = 'F-Star Score'
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = get_mean_values(dfs)
     new_c_name = 'Mean F-Star Score'
     return column, new_c_name
 
-def get_cohen_kappa_mean(csv_dir):
+def get_cohen_kappa_mean(csv_dir: Union[str, PosixPath]) -> Tuple[list, str]:
     column_name = 'Cohens Kappa'
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = get_mean_values(dfs)
     new_c_name = 'Mean Cohens Kappa'
     return column, new_c_name
 
-def get_mcc_mean(csv_dir):
+def get_mcc_mean(csv_dir: Union[str, PosixPath]) -> Tuple[list, str]:
     column_name = 'Matthews correlation coefficient'
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = get_mean_values(dfs)
     new_c_name = 'Mean Matthews correlation coefficient'
     return column, new_c_name
 
-def get_nmi_mean(csv_dir):
+def get_nmi_mean(csv_dir: Union[str, PosixPath]) -> Tuple[list, str]:
     column_name = 'NMI'
     dfs = get_single_column_dfs(csv_dir, column_name)
     column = get_mean_values(dfs)
     new_c_name = 'Mean NMI'
     return column, new_c_name
 
-def get_complete_mean_df(csv_dir):
+def get_complete_mean_df(csv_dir: Union[str, PosixPath]) -> DataFrame:
     new_df = get_basic_df(csv_dir)
     pred_mean, pred_name = get_pred_spec_mean(csv_dir)
     new_df[pred_name] = pred_mean
@@ -112,7 +115,7 @@ def get_complete_mean_df(csv_dir):
     new_df[nmi_name] = nmi_mean
     return new_df
 
-def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:int, dr:str, num_clusters:int, cluster_alg:str):
+def calc_multiple_means(encoding_path: Union[str, PosixPath], le_path: Union[str, PosixPath], RANDOM_SEEDS:list, n_interval:int, dr:str, num_clusters:int, cluster_alg:str) -> list:
     assert Path(encoding_path).is_file(), "encoding file should exist"
     assert Path(le_path).is_file(), "label encoding file should exist"
     with open(encoding_path, 'rb') as f:
@@ -163,33 +166,64 @@ def calc_multiple_means(encoding_path, le_path, RANDOM_SEEDS:list, n_interval:in
         print("no normal distribution!")
     return all_means
 
-def calculate_iou(polygon1, polygon2):
-    intersection = polygon1.intersection(polygon2).area
-    union = polygon1.union(polygon2).area
-    iou = intersection / union
-    return iou
+def calculate_iou(polygon1, polygon2) -> float:
+    return polygon1.intersection(polygon2).area / polygon1.union(polygon2).area
 
-def calculate_mean_iou_for_multiple_polygons(gt_df, pred_df):
+def calculate_mean_iou_for_multiple_polygons(ground_truth_df:GeoDataFrame, prediction_df:GeoDataFrame) -> Tuple[float, int]:
     iou_scores = []
     errors = 0
-    for gt_poly in gt_df['geometry']:
-        for pred_poly in pred_df['geometry']:
+    for gt_poly in ground_truth_df['geometry']:
+        for pred_poly in prediction_df['geometry']:
             try:
                 iou_score = calculate_iou(gt_poly, pred_poly)
                 if iou_score != 0.0 and iou_score > 0.4:
                     iou_scores.append(iou_score)
             except:
                 errors = errors + 1
-        return sum(iou_scores) / len(iou_scores)
+    mean_iou_score = sum(iou_scores) / len(iou_scores)
+    return mean_iou_score, len(iou_scores)
 
 # tp = number of correct crowns above the threshold
+def tp(iou_scores):
+    return iou_scores
+
 # fp = number of crowns below the threshold (number of predicted crowns - number of iou scores above threshold)
+def fp(predicted_crowns, iou_scores):
+    return predicted_crowns - iou_scores
+
 # fn = number of missing crowns (number of ground truth crowns - number of iou scores above threshold)
+def fn(ground_truth_crowns, iou_scores):
+    return ground_truth_crowns - iou_scores
+
 def precision(tp, fp):
-    return tp / tp + fp
+    return tp / (tp + fp)
 
 def recall(tp, fn):
-    return tp / tp + fn
+    return tp / (tp + fn)
 
-def calculate_object_detection_f1_score(precision, recall):
-    return 2*precision*recall / (precision + recall)
+def object_detection_f1_score(precision, recall):
+    return 2 * precision * recall / (precision + recall)
+
+def calculate_object_detection_f1_score(ground_truth_df:GeoDataFrame, prediction_df:GeoDataFrame) -> float:
+    """Calculate the f1-score of a corresponding test and training set.
+
+    Args:
+        ground_truth_df (GeoDataFrame): Contains annotated ground truth data
+        prediction_df (GeoDataFrame): Contains predictions of the test set
+
+    Returns:
+        float: f1-score
+    """
+    count_ground_truth_crowns = len(ground_truth_df)
+    count_predicted_crowns = len(prediction_df)
+    
+    _, count_iou_scores = calculate_mean_iou_for_multiple_polygons(ground_truth_df, prediction_df)
+    
+    TP = tp(count_iou_scores)
+    FP = fp(count_predicted_crowns, count_iou_scores)
+    FN = fn(count_ground_truth_crowns, count_iou_scores)
+    
+    prec = precision(TP, FP)
+    rec = recall(TP, FN)
+    
+    return object_detection_f1_score(prec, rec)

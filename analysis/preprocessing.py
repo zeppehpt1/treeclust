@@ -1,19 +1,16 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import skimage.exposure as skie
-import skimage
-import numpy as np
 import glob
 import cv2
 import tqdm
 import os
-from cv2 import normalize
-from skimage.restoration import denoise_tv_chambolle
 
+from numpy.typing import NDArray
+from skimage.restoration import denoise_tv_chambolle
 from pathlib import Path
 from PIL import Image,ImageOps
 
-def padding(img, expected_size):
+def padding(img:NDArray, expected_size:int) -> NDArray:
     desired_size = expected_size
     delta_width = desired_size - img.size[0]
     delta_height = desired_size - img.size[1]
@@ -22,7 +19,7 @@ def padding(img, expected_size):
     padding = (pad_width, pad_height, delta_width - pad_width, delta_height - pad_height)
     return ImageOps.expand(img, padding)
 
-def resize_with_padding(img, expected_size):
+def resize_with_padding(img:NDArray, expected_size:int) -> NDArray:
     img.thumbnail((expected_size[0], expected_size[1]))
     # print(img.size)
     delta_width = expected_size[0] - img.size[0]
@@ -32,21 +29,21 @@ def resize_with_padding(img, expected_size):
     padding = (pad_width, pad_height, delta_width - pad_width, delta_height - pad_height)
     return ImageOps.expand(img, padding)
 
-def pil_resize(img, expected_size):
+def pil_resize(img:NDArray, expected_size:int) -> NDArray:
     image = img
     new_image = image.resize((expected_size,expected_size))
     return new_image
 
-def get_png_file_names(file_dir):
+def get_png_file_names(file_dir:str) -> list:
     files = glob.glob(file_dir + '/*.png')
     return files
 
-def normalize_img(img_arr):
+def normalize_img(img_arr:NDArray) -> NDArray:
     normalized_img = cv2.normalize(img_arr, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
     normalized_img = normalized_img.astype(np.uint8)
     return normalized_img
 
-def highest_pixel_count(img_array):
+def highest_pixel_count(img_array:NDArray) -> int:
     pixel, n_of_pixels = np.unique(img_array, return_counts=True)
     highest_pixel_value = pixel[np.argsort(-n_of_pixels)]
     index = 0
@@ -56,11 +53,25 @@ def highest_pixel_count(img_array):
             return highest_pixel_value[index]
         index += 1
 
-def check_alpha_channel(img_arr):
+def check_alpha_channel(img_arr:NDArray) -> bool:
     h,w,c = img_arr.shape
     return True if c ==4 else False
 
-def preprocess_images(images_path, resize:str, expected_size:int, square:bool, set_clahe:bool, set_denoising:bool, set_blur:bool):
+def preprocess_images(images_path:str, resize:str, expected_size:int, square:bool, set_clahe:bool, set_denoising:bool, set_blur:bool) -> str:
+    """Apply one or several image processing options to multiple images to prepare them for object detection or feature extraction.
+
+    Args:
+        images_path (str): Path to images
+        resize (str): Realize image resizing with image 'padding' or image 'stretch'
+        expected_size (int): Desired image size
+        square (bool): Ensures correct file naming when square format is used
+        set_clahe (bool): Enable or disable CLAHE
+        set_denoising (bool): Enable or disable denoising
+        set_blur (bool): Enable or disable blur
+
+    Returns:
+        str: Outputs the path to the created preprocessed image files folder.
+    """
     file_list = get_png_file_names(images_path)
     shape = 'polygon'
     enhancements = ''

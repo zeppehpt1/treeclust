@@ -1,5 +1,7 @@
 import numpy as np
 
+# copyright goes to Ryan Cohn, copied from his work
+
 class CustomLabelEncoder:
     """
     Creates a mapping between string labels and integer class clabels for working with categorical data.

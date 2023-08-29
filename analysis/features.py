@@ -1,31 +1,28 @@
 import torch
 import numpy as np
-from numpy import asarray
 import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
-from torch.autograd import Variable
-from torch import permute
-from PIL import Image
-import matplotlib.pyplot as plt
-import cv2
-import os
-from pathlib import Path
 import pickle
 import pandas as pd
-from glob import glob
+import os
+
+from typing import Tuple
+from numpy.typing import NDArray
+from PIL import Image
+from pathlib import Path
 from tqdm import tqdm
 
 from analysis import label_tools as lt
 from .constants import SITE
 
-def load_files(preprocessed_fp:str):
+def load_files(preprocessed_fp:str) -> list:
     files = sorted(Path(preprocessed_fp).glob('*.png'))
     randomizer = np.random.RandomState(seed=12)
     randomizer.shuffle(files)
     return files
 
-def alter_image(img_name, image_size):
+def alter_image(img_name:str, image_size:int) -> NDArray:
     resize = transforms.Resize((image_size,image_size))
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
@@ -36,37 +33,19 @@ def alter_image(img_name, image_size):
     image_tensor = image_tensor.reshape(1,3,image_size,image_size)
     return image_tensor
 
-def load_images_as_tensors(files, image_size):
+def load_images_as_tensors(files:list, image_size:int) -> list:
     image_tensors = [alter_image(image, image_size) for image in files]
     return image_tensors
 
-def extract_numeric_labels(files):
+def extract_numeric_labels(files:list) -> list:
     return [filename.stem.split('_')[6] for filename in files]
 # TODO: use consistent position for the ID
 # mabye adjust number position in filename when attribute error!
 # 6 schiefer
 # 5 stadtwald
 
-# # single cfb184 crowns
-# def convert_number_to_str(labels):
-#     update = {
-#     '4':'Fagus_sylvatica',
-#     #'5':'Fraxinus_excelsior',
-#     #'6':'Quercus_spec',
-#     '8':'deadwood',
-#     '10':'Abies_alba',
-#     #'11':'Larix_decidua',
-#     '12':'Picea_abies',
-#     #'13':'Pinus_sylvestris',
-#     #'14':'Pseudotsuga_menziesii'
-#     }
-#     updated_labels = (pd.Series(labels)).map(update)
-#     species_labels = list(updated_labels)
-#     return species_labels
-# # adjust species according to analyzed sites
-
-def convert_number_to_str(labels): # all schiefer
-#TODO only one scheme for all datasets, it doesn't matter if one number is not present in the dataset
+def convert_number_to_str(labels:list) -> list: # all schiefer
+#TODO use only one scheme for all datasets, it doesn't matter if one number is not present in the dataset
     if SITE == 'Schiefer':
         update = {
         #'2':'Acer pseudoplatanus', not appears
@@ -124,12 +103,12 @@ def convert_number_to_str(labels): # all schiefer
         species_labels = list(updated_labels)
         return species_labels
 
-def encode_labels(labels):
+def encode_labels(labels:list):
     le = lt.CustomLabelEncoder()
     le.fit(labels, sorter=lambda x: x.upper())
     return le
 
-def save_le(le, le_path):
+def save_le(le, le_path:str):
     with open(le_path, 'wb') as f:
         pickle.dump(le, f)
         
@@ -158,7 +137,7 @@ class FeatureExtractor(nn.Module):
     out = self.fc(out) 
     return out 
 
-def get_model(cnn: str):
+def get_model(cnn:str):
     if cnn == 'vgg':
         model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
         model = FeatureExtractor(model)
@@ -173,12 +152,12 @@ def get_model(cnn: str):
     model.eval()
     return model
 
-def concat_tensors(features):
+def concat_tensors(features:NDArray) -> NDArray:
     fc = torch.cat(features)
     fc = fc.cpu().detach().numpy()
     return fc
 
-def get_avgpool_fc_feature(model, image_tensor):
+def get_avgpool_fc_feature(model, image_tensor:NDArray) -> NDArray:
     # a dict to store the activations
     activation = {}
     def getActivation(name):
@@ -196,12 +175,12 @@ def get_avgpool_fc_feature(model, image_tensor):
     feature = torch.unsqueeze(feature,dim=0)
     return feature
 
-def get_avgpool_fc_features(model, image_tensors):
+def get_avgpool_fc_features(model, image_tensors:NDArray) -> NDArray:
     features = [get_avgpool_fc_feature(model, tensor) for tensor in tqdm(image_tensors)]
     features = concat_tensors(features)
     return features
 
-def get_avg_last_fc_feature(model, image_tensor):
+def get_avg_last_fc_feature(model, image_tensor:NDArray) -> NDArray:
      # a dict to store the activations
     activation = {}
     def getActivation(name):
@@ -219,24 +198,24 @@ def get_avg_last_fc_feature(model, image_tensor):
     feature = torch.unsqueeze(feature,dim=0)
     return feature
 
-def get_avg_last_fc_features(model, image_tensors):
+def get_avg_last_fc_features(model, image_tensors:list) -> NDArray:
     features = [get_avg_last_fc_feature(model, tensor) for tensor in tqdm(image_tensors)]
     features = concat_tensors(features)
     return features
 
-def get_fc1_feature(model, image_tensor):
+def get_fc1_feature(model, image_tensor:NDArray) -> NDArray:
     with torch.no_grad():
         feature = model(image_tensor)
     feature.cpu().detach().numpy()
     return feature
 
-def get_fc1_features(model, image_tensors):
+def get_fc1_features(model, image_tensors:NDArray) -> NDArray:
     with torch.no_grad():
         features = [model(tensor) for tensor in tqdm(image_tensors)]
     features = concat_tensors(features)
     return features
 
-def extract_encodings(cnn:str, files:str):
+def extract_encodings(cnn:str, files:str) -> NDArray:
     if cnn == 'vgg':
         image_size = 224
         model = get_model(cnn)
@@ -269,7 +248,7 @@ def extract_encodings(cnn:str, files:str):
         features = get_avgpool_fc_features(model, tensors)
     return features
 
-def save_encodings(files, features, labels, features_path):
+def save_encodings(files:list, features:NDArray, labels:list, features_path:str)-> pickle:
     results = {'filename': files,
            'features': features,
            'labels': labels,
@@ -277,28 +256,23 @@ def save_encodings(files, features, labels, features_path):
     with open(features_path, 'wb') as f:
         pickle.dump(results, f)
         
-def create_and_save_le_encodings(cnn:str, preprocessed_fp:str, site_folder:str):
-    
+def create_and_save_le_encodings(cnn:str, preprocessed_fp:str, site_folder:str) -> Tuple[str, str]:
     features_dir = site_folder + 'encodings/'
     Path(features_dir).mkdir(parents=True, exist_ok=True)
     preprocess_str = str(Path(preprocessed_fp).stem).split('_')[2]
     features_path = features_dir + cnn + '_' + preprocess_str + '_polygon_pred.pickle'
-
     if os.path.isfile(features_path) == False:
         files = load_files(preprocessed_fp)
         labels = extract_numeric_labels(files)
         print(labels)
         labels = convert_number_to_str(labels)
-        
         le = encode_labels(labels)
         features = extract_encodings(cnn, files)
-        
         # save le
         le_dir = site_folder + '/label_encodings/'
         Path(le_dir).mkdir(parents=True, exist_ok=True)
         le_path = le_dir + cnn + '_' + preprocess_str + '_label_encodings.pickle'
         save_le(le, le_path)
-        
         # save encoding
         save_encodings(files, features, labels, features_path)
         return le_path, features_path

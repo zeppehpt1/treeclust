@@ -2,7 +2,7 @@ import random
 from random import randint
 from typing import final
 
-def unique_rand(inicial, limit, total):
+def unique_rand(inicial:int, limit:int, total:int) -> list:
         data = []
         i = 0
         while i < total:

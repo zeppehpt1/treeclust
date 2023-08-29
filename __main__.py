@@ -14,6 +14,18 @@ from pathlib import Path
 from tqdm import tqdm
 
 def main():
+    """Complete pipeline driver, which includes the following steps:
+    
+    Need to define paths to the orthomosaic tiles dir, ground truth masks dir and the corresponding shapefile dir.
+    
+    Caution: Orthomosaic tiles and shapefiles should have matching numbers for the pipeline to work properly.
+    
+    1. Extraction of single tree crown images
+    2. Preprocessing of extracted images
+    3. Feature extraction (encoding)
+    4. Dimensionality reduction
+    5. Clustering
+    """
     
     # #schiefer
     # site_folder = '/home/richard/data/' + SITE + '/'
@@ -72,7 +84,7 @@ def main():
     else:
         print("Encodings already exists")
     
-    # 4. analysis
+    # analysis
     # 5 runs
     final_res_name ='final' + '_' + SITE + '_' + 'analysis.pickle'
     if os.path.exists(result_dir / final_res_name) == False:
@@ -100,7 +112,7 @@ def main():
             le_files = sorted(label_encoding_dir.glob('*.pickle'))
             for encoding_file, le_file in zip(encoding_files, le_files):
                 files, features, labels, y_gt = cluster.load_all_data(encoding_file, le_file)
-                # dr
+                # 4. DR
                 pca_reduced = cluster.pca(features)
                 umap_reduced = cluster.umap(features, RANDOM_SEED)
                 reduced_features = [pca_reduced, umap_reduced] # TODO separate function
@@ -118,6 +130,7 @@ def main():
                     # cluser analysis
                     # best k
                     #best_k = cluster.determine_best_k(dr_features)
+                    # 5. clustering
                     used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_weighted_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.get_cluster_res(dr_features, y_gt, RANDOM_SEED)
                     for cl_alg, micro_f1_score, macro_f1_score, weighted_f1_score, f_star_score, cohen_kappa_score, mcc_score, nmi_score, y_pred_label_set, pred_species_num in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_weighted_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species):
                         # append settings of the run to lists
@@ -153,17 +166,11 @@ def main():
                     #'Expected cluster number': pred_cluster_numbers}
             df = pd.DataFrame(results)
             
-            # test pickle save
             result_filename = run_ident + '_' + SITE + '_' + 'analysis.pickle'
             pd.to_pickle(df, result_dir / result_filename)
-            # result_filename = run_ident + '_' + SITE + '_' + 'analysis.csv'
-            # df.to_csv(result_dir / result_filename, index=False)
             results = results.clear()
-        # test pickle
         final_df = evaluation.get_complete_mean_df(result_dir)
         pd.to_pickle(final_df, result_dir / final_res_name)
-        # final_df = evaluation.get_complete_mean_df(result_dir)
-        # final_df.to_csv(result_dir / final_res_name, index=False)
     else:
         print("Final results already produced")
 
