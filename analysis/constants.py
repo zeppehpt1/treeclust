@@ -13,7 +13,7 @@ def unique_rand(inicial:int, limit:int, total:int) -> list:
         return data
 
 random.seed(698)
-RANDOM_SEEDS = unique_rand(1, 999999, 5)
+RANDOM_SEEDS = unique_rand(1, 999999, 5) # 5 = how often the experiment should be performed
 SITE = 'Schiefer'
 #SITE = 'Bamberg_Stadtwald'
 #SITE = 'Tretzendorf'
