@@ -11,6 +11,7 @@ from fiona.crs import from_epsg
 from shapely.geometry import Polygon
 from shapely.validation import make_valid
 from rasterio.mask import mask
+from geopandas import GeoDataFrame
 
 from analysis import prepare
 
@@ -95,7 +96,7 @@ def remap_tree_species(geo_df):
         'LBH': 'Lbh',
         'Lnh': 'Lbh',
         'Lbh (abgöngig)': 'deadwood',
-        'lbh': 'deadwood'
+        'lbh': 'deadwood',
     }
     species_id_map = {
         'deadwood': 8,
@@ -142,7 +143,7 @@ def extract_predicted_crowns_from_aois(aois_dir:str, gt_crowns_filepath:str, nam
             if geom.contains(poly):
                 poly_container.append(poly)
                 scores.append(score)
-        new_df = get_geo_df(poly_container, epsg)
+        new_df = gpd.GeoDataFrame(crs='epsg:'+epsg, geometry=poly_container)
         new_df['Confidence_score'] = scores
         new_df.to_file(name, driver="GPKG")
         index = index + 1
@@ -256,3 +257,8 @@ def get_image_species_distribution(single_tree_dir):
     f = sorted(glob(single_tree_dir + '*.png'))
     numbers = [get_str_num(str(filename), 6) for filename in f]
     return sorted(set(numbers))
+
+def concat_shapefiles(shapefile_dir) -> GeoDataFrame:
+    shapefiles = sorted(glob(shapefile_dir + '*.gpkg'))
+    geo_dfs = [gpd.read_file(f) for f in shapefiles]
+    return pd.concat(geo_dfs, ignore_index=True)

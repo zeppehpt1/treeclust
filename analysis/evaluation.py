@@ -205,7 +205,7 @@ def object_detection_f1_score(precision, recall):
     return 2 * precision * recall / (precision + recall)
 
 def calculate_object_detection_f1_score(ground_truth_df:GeoDataFrame, prediction_df:GeoDataFrame) -> float:
-    """Calculate the f1-score of a corresponding test and training set.
+    """Calculate the f1-score of a corresponding test and training set. Preferably using only matching test and prediction tiles.
 
     Args:
         ground_truth_df (GeoDataFrame): Contains annotated ground truth data
