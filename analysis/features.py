@@ -251,7 +251,7 @@ def extract_encodings(cnn:str, files:str) -> NDArray:
 def save_encodings(files:list, features:NDArray, labels:list, features_path:str)-> pickle:
     results = {'filename': files,
            'features': features,
-           'labels': labels,
+           'la b bels': labels,
            'layer_name': 'fc'}
     with open(features_path, 'wb') as f:
         pickle.dump(results, f)
@@ -264,7 +264,6 @@ def create_and_save_le_encodings(cnn:str, preprocessed_fp:str, site_folder:str) 
     if os.path.isfile(features_path) == False:
         files = load_files(preprocessed_fp)
         labels = extract_numeric_labels(files)
-        print(labels)
         labels = convert_number_to_str(labels)
         le = encode_labels(labels)
         features = extract_encodings(cnn, files)

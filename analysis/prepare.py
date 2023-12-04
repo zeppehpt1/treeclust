@@ -99,7 +99,7 @@ def clip_crown_from_raster(img_path:str, mask_path:str, polygon, out_file_suffix
     # TODO: create a flag to switch between gt and no gt
     # TODO: Adjust Path
     # TODO: remove or add extra functionality to include gt or not, in dev right now
-    # get ground truth of ortho mask (labeled schiefer)
+    # get ground truth of ortho mask (manually labeled image)
     ortho_mask_data = rasterio.open(mask_path)
     epsg = int(str(ortho_mask_data.crs).split(':')[1])
     # rasterio wants coordinates as a geodata geojson format for parsing
@@ -181,7 +181,7 @@ def clip_crowns_with_gt_mask(img_path: Union[str, Path], crowns: GeoDataFrame, m
     """
     
     if make_squares == True:
-        crowns = get_gdf_with_inner_square_polygons(crowns,step_size)
+        crowns = get_gdf_with_inner_square_polygons(crowns, step_size)
     for index in (pbar := tqdm(range(len(crowns['geometry'])), leave=False)):
         pbar.set_description(f"Processing number {index}")
         file_suffix = '_mask_{0:0>4}_'.format(index)
@@ -192,7 +192,7 @@ def clip_crown_sets_with_gt_masks(imgs_dir: Union[str, Path], crown_dir, mask_di
 
     Args:
         imgs_dir (Union[str,Path]): Path to image folder
-        crown_dir: Path to crown folder
+        crown_dir: Path to predicted crowns folder
         mask_dir (Union[str,Path]): Path to mask folder
         make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
         step_size: Affects only inner square polygons when make_squares is set to TRUE.
