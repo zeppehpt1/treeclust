@@ -203,7 +203,7 @@ notebooks/progress/
 # big data files
 data/orthomosaics/
 data/shape/
-data/
+data/*
 .mapbox_token
 pytorch_data/
 

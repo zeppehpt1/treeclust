@@ -1,6 +1,5 @@
 from analysis import label_tools as lt
 from analysis import prepare
-from analysis import visualization
 from analysis import preprocessing
 from analysis import features as ft
 from analysis import cluster
@@ -16,7 +15,7 @@ from tqdm import tqdm
 def main():
     """Complete pipeline driver, which includes the following steps:
     
-    Need to define paths to the orthomosaic tiles dir, ground truth masks dir and the corresponding shapefile dir.
+    Need to define paths to the orthomosaic tiles dir, ground truth masks dir and the corresponding shapefile dir. Or skip steps 1-4 if the .pickle files are available in the data folder.
     
     Caution: Orthomosaic tiles and shapefiles should have matching numbers for the pipeline to work properly.
     

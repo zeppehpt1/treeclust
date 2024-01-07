@@ -1,0 +1,54 @@
+package:
+  name: treeclust
+  version: "1.0.0"
+
+source:
+  path: .
+
+build:
+  script: python -m pip install --no-deps --ignore-installed
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools
+
+  run:
+    - python
+    - numpy
+    - umap
+    - pickle
+    - pandas
+    - scikit-learn
+    - joblib
+    - fuzzy-c-means
+    - districtdatalabs::yellowbrick
+    - milesgranger::gap-stat
+    - geopandas
+    - rioxarray
+    - fiona
+    - rasterio
+    - tqdm
+    - scipy
+    - pytorch
+    - torchvision
+    - pillow
+    - shapely
+    - cv2
+    - opencv-python-headless
+    - opencv
+    - matplotlib
+    - seaborn
+    - scikit-image
+  
+  test:
+    imports:
+      - treeclust
+
+  about:
+    license: MIT
+    license-file: LICENSE
+
+    description:  Includes a automatic pipeline to evaluate the clustering capabilities of single tree crown images.
+ 
