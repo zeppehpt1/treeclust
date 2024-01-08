@@ -14,7 +14,6 @@ from sklearn.datasets import make_blobs
 from joblib import Parallel, delayed
 from fcmeans import FCM
 from yellowbrick.cluster import KElbowVisualizer
-from gap_statistic import OptimalK
 from collections import Counter
 
 from analysis import label_tools as lt
@@ -126,11 +125,6 @@ def scaled_insertia(scaled_data:NDArray, k_range=range(2, 20)) -> Tuple[int, Dat
     best_k = results.idxmin()[0]
     return best_k, results
 
-def gap_statistic(reduced_f:NDArray) -> int:
-    optimalK = OptimalK(n_jobs=4, parallel_backend='joblib')
-    n_clusters = optimalK(reduced_f, cluster_array=np.arange(2, 15))
-    return n_clusters
-
 def ch_index(reduced_f:NDArray) -> int:
     model = KMeans(n_init='auto', init='k-means++')
     visualizer = KElbowVisualizer(model, k=(2, 15), metric='calinski_harabasz', timings=True)
@@ -157,11 +151,10 @@ def most_common_elem(lst:list) -> int:
 def get_proposed_cluster_numbers(reduced_f:NDArray) -> list:
     elbow_k = elbow_score(reduced_f)
     scaled_k, results = scaled_insertia(reduced_f)
-    gap_k = gap_statistic(reduced_f)
     ch_index_k = ch_index(reduced_f)
     silhouette_k = silhouette_score(reduced_f)
     affinity_k = affinity_propagation(reduced_f)
-    return [elbow_k, scaled_k, gap_k, ch_index_k, silhouette_k, affinity_k]
+    return [elbow_k, scaled_k, ch_index_k, silhouette_k, affinity_k]
 
 def determine_best_k(reduced_f:NDArray) -> int:
     return most_common_elem(get_proposed_cluster_numbers(reduced_f))

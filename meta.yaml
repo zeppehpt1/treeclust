@@ -1,12 +1,16 @@
 package:
   name: treeclust
-  version: "1.0.0"
+  version: {{ GIT_DESCRIBE_TAG }}
+
+channels:
+  - defaults
+  - conda-forge
 
 source:
   path: .
 
 build:
-  script: python -m pip install --no-deps --ignore-installed
+  script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
   host:
@@ -17,14 +21,10 @@ requirements:
   run:
     - python
     - numpy
-    - umap
-    - pickle
     - pandas
     - scikit-learn
     - joblib
-    - fuzzy-c-means
-    - districtdatalabs::yellowbrick
-    - milesgranger::gap-stat
+    - yellowbrick
     - geopandas
     - rioxarray
     - fiona
@@ -35,12 +35,11 @@ requirements:
     - torchvision
     - pillow
     - shapely
-    - cv2
-    - opencv-python-headless
     - opencv
     - matplotlib
     - seaborn
     - scikit-image
+    - umap-learn
   
   test:
     imports:
