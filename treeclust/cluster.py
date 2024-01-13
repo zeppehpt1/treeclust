@@ -16,8 +16,8 @@ from fcmeans import FCM
 from yellowbrick.cluster import KElbowVisualizer
 from collections import Counter
 
-from analysis import label_tools as lt
-from .constants import NUMBER_OF_CLASSES
+import label_tools as lt
+from constants import NUMBER_OF_CLASSES
 
 def load_features(features_path:str) -> Tuple[list, NDArray, list]:
     with open(features_path, 'rb') as f:

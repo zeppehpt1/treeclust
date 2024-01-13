@@ -13,8 +13,8 @@ from PIL import Image
 from pathlib import Path
 from tqdm import tqdm
 
-from analysis import label_tools as lt
-from .constants import SITE
+import label_tools as lt
+from constants import SITE
 
 def load_files(preprocessed_fp:str) -> list:
     files = sorted(Path(preprocessed_fp).glob('*.png'))
@@ -251,7 +251,7 @@ def extract_encodings(cnn:str, files:str) -> NDArray:
 def save_encodings(files:list, features:NDArray, labels:list, features_path:str)-> pickle:
     results = {'filename': files,
            'features': features,
-           'la b bels': labels,
+           'labels': labels,
            'layer_name': 'fc'}
     with open(features_path, 'wb') as f:
         pickle.dump(results, f)

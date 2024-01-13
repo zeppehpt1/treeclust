@@ -3,9 +3,9 @@ import random
 import importlib
 from pathlib import Path
 
-from analysis import evaluation
-from analysis.evaluation import calc_multiple_means
-from analysis.constants import unique_rand
+import evaluation
+from evaluation import calc_multiple_means
+from constants import unique_rand
 
 importlib.reload(evaluation)
 

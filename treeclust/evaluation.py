@@ -13,8 +13,8 @@ from sklearn.cluster import KMeans, AgglomerativeClustering, OPTICS
 from sklearn.decomposition import PCA
 from sklearn.metrics import f1_score
 
-from analysis import label_tools as lt
-from .constants import SITE
+import label_tools as lt
+from constants import SITE
 
 def get_files(csv_dir: Union[str, PosixPath]) -> list:
     return sorted(csv_dir.glob(('*_' + SITE + '_analysis.pickle')))

@@ -119,5 +119,5 @@ def preprocess_images(images_path:str, resize:str, expected_size:int, square:boo
             PIL_image.save(str(out_dir) + '/' + str(file_name) + '_preprocessed' + '.png')
         return out_dir
     else:
-        print(enhancements + ' processed files already exists')
+        print(enhancements + ' processed files already exist')
         return out_dir

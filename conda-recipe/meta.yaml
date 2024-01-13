@@ -1,23 +1,25 @@
 package:
   name: treeclust
-  version: {{ GIT_DESCRIBE_TAG }}
+  version: "1.0.0"
 
 channels:
   - defaults
   - conda-forge
 
 source:
-  path: .
+  path: ..
 
 build:
-  script: python -m pip install --no-deps --ignore-installed .
+  number: 0
+  preserve_egg_dir: True
+  # script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
-  host:
+  build:
     - python
-    - pip
+    - numpy
     - setuptools
-
+  
   run:
     - python
     - numpy

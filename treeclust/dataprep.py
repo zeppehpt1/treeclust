@@ -13,7 +13,7 @@ from shapely.validation import make_valid
 from rasterio.mask import mask
 from geopandas import GeoDataFrame
 
-from analysis import prepare
+import prepare
 
 # TODO: complete testing of functions, currently loosely transitioned from jupyter notebook drawings
 

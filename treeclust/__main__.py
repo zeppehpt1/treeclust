@@ -1,10 +1,9 @@
-from analysis import label_tools as lt
-from analysis import prepare
-from analysis import preprocessing
-from analysis import features as ft
-from analysis import cluster
-from analysis import evaluation
-from analysis.constants import RANDOM_SEEDS, SITE
+import prepare
+import preprocessing
+import features as ft
+import cluster
+import evaluation
+from constants import RANDOM_SEEDS, SITE
 
 import pandas as pd
 import os
@@ -15,7 +14,7 @@ from tqdm import tqdm
 def main():
     """Complete pipeline driver, which includes the following steps:
     
-    Need to define paths to the orthomosaic tiles dir, ground truth masks dir and the corresponding shapefile dir. Or skip steps 1-4 if the .pickle files are available in the data folder.
+    Need to define paths to the orthomosaic tiles dir, ground truth masks dir and the corresponding shapefile dir. Or skip steps 1-4 if the .pickle files are available in the data folder. The whole pipeline creates .pickle files in the result dir with the clustering information.
     
     Caution: Orthomosaic tiles and shapefiles should have matching numbers for the pipeline to work properly.
     
@@ -27,24 +26,24 @@ def main():
     """
     
     # #schiefer
-    # site_folder = '/home/richard/data/' + SITE + '/'
-    # orthophoto_dir = site_folder + 'ortho_tiles/'
-    # gt_mask_dir = site_folder + 'gt_masks/'
-    # prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
-    # # gt_annotations_dir = "" # optional
+    site_folder = '/home/richard/data/' + SITE + '/'
+    orthophoto_dir = site_folder + 'ortho_tiles/'
+    gt_mask_dir = site_folder + 'gt_masks/'
+    prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
+    # gt_annotations_dir = "" # optional
     
     # stadtwald & tretzendorf
-    site_folder = '/home/richard/data/' + SITE + '/'
-    orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
-    gt_mask_dir = site_folder + 'gt_masks/'
-    prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
+    # site_folder = '/home/richard/data/' + SITE + '/'
+    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
+    # gt_mask_dir = site_folder + 'gt_masks/'
+    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
     # gt_annotations_dir = "" # optional
     
     # stadtwald test set
-    site_folder = '/home/richard/data/' + SITE + '/'
-    orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
-    gt_mask_dir = site_folder + 'gt_masks/'
-    prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
+    # site_folder = '/home/richard/data/' + SITE + '/'
+    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
+    # gt_mask_dir = site_folder + 'gt_masks/'
+    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
     
     # define folders
     encoding_dir = Path(site_folder + 'encodings')
@@ -67,7 +66,7 @@ def main():
         Path(site_folder + 'pred_polygon_clipped_raster_files').mkdir(parents=True, exist_ok=True)
         prepare.clip_crown_sets_with_gt_masks(orthophoto_dir, prediction_dir, gt_mask_dir, make_squares=False, step_size=0.5)
     else:
-        print("Cropped files already exists")
+        print("Cropped files already exist")
 
     # 2. preprocess images create two sets
     first_set = preprocessing.preprocess_images(site_folder + 'pred_polygon_clipped_raster_files', None, None, False, True, True, False)
@@ -81,7 +80,7 @@ def main():
             clahe_denoising = ft.create_and_save_le_encodings(cnn, first_set, site_folder)
             clahe = ft.create_and_save_le_encodings(cnn, second_set, site_folder)
     else:
-        print("Encodings already exists")
+        print("Encodings already exist")
     
     # analysis
     # 5 runs

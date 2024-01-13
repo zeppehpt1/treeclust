@@ -12,7 +12,7 @@ from PIL import Image
 from numpy.typing import NDArray
 
 from . import cluster
-from analysis import label_tools as lt
+import label_tools as lt
 
 def pretty_cm(cm, labelnames, cscale=0.6, ax0=None, fs=5, cmap='cool'):
     """
