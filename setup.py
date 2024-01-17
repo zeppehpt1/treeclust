@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='treeclust',
@@ -28,5 +28,6 @@ setup(
     'matplotlib',
     'seaborn',
     'scikit-image',
+    'fuzzy-c-means'
     'umap-learn'
 ])

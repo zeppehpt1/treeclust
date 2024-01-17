@@ -68,7 +68,7 @@ class CustomLabelEncoder:
         """
         assert self.mapper is not None, 'Encoder not fit yet!'
         
-        int_labels = np.asarray([self.mapper[x] for x in str_labels], np.int)
+        int_labels = np.asarray([self.mapper[x] for x in str_labels], int)
         
         return int_labels
         

@@ -1,0 +1,9 @@
+version: '3'
+services:
+  treeclust:
+    env_file:
+      - config.env
+    image: zeppeh/treeclust:latest
+    volumes:
+      - ./data/:/treeclust/data
+      - ./models/:/treeclust/models

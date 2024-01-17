@@ -3,7 +3,7 @@ import preprocessing
 import features as ft
 import cluster
 import evaluation
-from constants import RANDOM_SEEDS, SITE
+from constants import RANDOM_SEEDS, SITE_FOLDER, SITE
 
 import pandas as pd
 import os
@@ -25,25 +25,17 @@ def main():
     5. Clustering
     """
     
-    # #schiefer
-    site_folder = '/home/richard/data/' + SITE + '/'
+    site_folder = SITE_FOLDER
     orthophoto_dir = site_folder + 'ortho_tiles/'
     gt_mask_dir = site_folder + 'gt_masks/'
-    prediction_dir = site_folder + 'predictions/pred_crown_tiles/'
+    prediction_dir = site_folder + 'pred_crown_tiles/'
     # gt_annotations_dir = "" # optional
     
-    # stadtwald & tretzendorf
-    # site_folder = '/home/richard/data/' + SITE + '/'
-    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
-    # gt_mask_dir = site_folder + 'gt_masks/'
-    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
-    # gt_annotations_dir = "" # optional
-    
-    # stadtwald test set
-    # site_folder = '/home/richard/data/' + SITE + '/'
-    # orthophoto_dir = site_folder + 'ortho_tiles_aoi/'
-    # gt_mask_dir = site_folder + 'gt_masks/'
-    # prediction_dir = site_folder + 'predictions/pred_crown_tiles_gt_aois/'
+    # test source folders
+    assert Path(site_folder).exists()
+    assert Path(orthophoto_dir).exists()
+    assert Path(gt_mask_dir).exists()
+    assert Path(prediction_dir).exists()
     
     # define folders
     encoding_dir = Path(site_folder + 'encodings')
@@ -53,10 +45,6 @@ def main():
     Path(label_encoding_dir).mkdir(parents=True, exist_ok=True)
     Path(result_dir).mkdir(parents=True, exist_ok=True)
     
-    assert Path(site_folder).exists()
-    assert Path(orthophoto_dir).exists()
-    assert Path(gt_mask_dir).exists()
-    assert Path(prediction_dir).exists()
     assert Path(encoding_dir).exists()
     assert Path(label_encoding_dir).exists()
     assert Path(result_dir).exists()
@@ -83,7 +71,6 @@ def main():
         print("Encodings already exist")
     
     # analysis
-    # 5 runs
     final_res_name ='final' + '_' + SITE + '_' + 'analysis.pickle'
     if os.path.exists(result_dir / final_res_name) == False:
         for RANDOM_SEED in (pbar := tqdm(RANDOM_SEEDS)):
@@ -108,6 +95,7 @@ def main():
             run_ident = str(RANDOM_SEEDS.index(RANDOM_SEED))
             encoding_files = sorted(encoding_dir.glob('*.pickle'))
             le_files = sorted(label_encoding_dir.glob('*.pickle'))
+
             for encoding_file, le_file in zip(encoding_files, le_files):
                 files, features, labels, y_gt = cluster.load_all_data(encoding_file, le_file)
                 # 4. DR
@@ -130,6 +118,7 @@ def main():
                     #best_k = cluster.determine_best_k(dr_features)
                     # 5. clustering
                     used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_weighted_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species = cluster.get_cluster_res(dr_features, y_gt, RANDOM_SEED)
+
                     for cl_alg, micro_f1_score, macro_f1_score, weighted_f1_score, f_star_score, cohen_kappa_score, mcc_score, nmi_score, y_pred_label_set, pred_species_num in zip(used_cluster_alg, aquired_micro_f1_scores, aquired_macro_f1_scores, aquired_weighted_f1_scores, aquired_f_star_scores, aquired_cohen_kappa_scores, aquired_mcc_scores, aquired_nmi_scores, aquired_y_pred_label_sets, aquired_num_pred_species):
                         # append settings of the run to lists
                         preprocessing_types.append(used_preprocess)

@@ -14,7 +14,10 @@ from pathlib import Path
 from tqdm import tqdm
 
 import label_tools as lt
-from constants import SITE
+
+def is_docker():
+    cgroup = Path('/proc/self/cgroup')
+    return Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in cgroup.read_text()
 
 def load_files(preprocessed_fp:str) -> list:
     files = sorted(Path(preprocessed_fp).glob('*.png'))
@@ -38,70 +41,31 @@ def load_images_as_tensors(files:list, image_size:int) -> list:
     return image_tensors
 
 def extract_numeric_labels(files:list) -> list:
-    return [filename.stem.split('_')[6] for filename in files]
-# TODO: use consistent position for the ID
-# mabye adjust number position in filename when attribute error!
-# 6 schiefer
-# 5 stadtwald
+    return [filename.stem.split('_')[::-1][1] for filename in files] # reverse split
 
-def convert_number_to_str(labels:list) -> list: # all schiefer
-#TODO use only one scheme for all datasets, it doesn't matter if one number is not present in the dataset
-    if SITE == 'Schiefer':
-        update = {
-        #'2':'Acer pseudoplatanus', not appears
-        '4':'Fagus_sylvatica',
-        '5':'Fraxinus_excelsior',
-        '6':'Quercus_spec',
-        '8':'deadwood',
-        '10':'Abies_alba',
-        '11':'Larix_decidua',
-        '12':'Picea_abies',
-        '13':'Pinus_sylvestris',
-        '14':'Pseudotsuga_menziesii',
-        '15':'Betula_pendula'
-        }
-        updated_labels = (pd.Series(labels)).map(update)
-        species_labels = list(updated_labels)
-        return species_labels
-    elif SITE == 'Bamberg_Stadtwald':
-        update = {
-        '2':'Acer pseudoplatanus',
-        '4':'Fagus_sylvatica',
-        '5':'Fraxinus_excelsior',
-        '6':'Quercus_spec',
-        '8':'deadwood',
-        '10':'Abies_alba',
-        '11':'Larix_decidua',
-        '12':'Picea_abies',
-        '13':'Pinus_sylvestris',
-        '14':'Pseudotsuga_menziesii',
-        '15':'Betula pendula',
-        '16':'Tilia',
-        '18':'Lbh',
-        '19':'Sorbus_torminalis',
-        '20':'Ulmus',
-        '21':'Acer_platanoides',
-        '22':'Quercus_rubra'
-        }
-        updated_labels = (pd.Series(labels)).map(update)
-        species_labels = list(updated_labels)
-        return species_labels
-    elif SITE == 'Tretzendorf':
-        update = {
-        '4':'Fagus_sylvatica',
-        '6':'Quercus_spec',
-        '8':'deadwood',
-        '11':'Larix_decidua',
-        '12':'Picea_abies',
-        '13':'Pinus_sylvestris',
-        '18':'Lbh',
-        '19':'Sorbus_torminalis',
-        '20':'Ulmus',
-        '22':'Quercus_rubra'
-        }
-        updated_labels = (pd.Series(labels)).map(update)
-        species_labels = list(updated_labels)
-        return species_labels
+def convert_number_to_str(labels:list) -> list:
+    update = {
+    '2':'Acer pseudoplatanus',
+    '4':'Fagus_sylvatica',
+    '5':'Fraxinus_excelsior',
+    '6':'Quercus_spec',
+    '8':'deadwood',
+    '10':'Abies_alba',
+    '11':'Larix_decidua',
+    '12':'Picea_abies',
+    '13':'Pinus_sylvestris',
+    '14':'Pseudotsuga_menziesii',
+    '15':'Betula_pendula',
+    '16':'Tilia',
+    '18':'Lbh',
+    '19':'Sorbus_torminalis',
+    '20':'Ulmus',
+    '21':'Acer_platanoides',
+    '22':'Quercus_rubra'
+    }
+    updated_labels = (pd.Series(labels)).map(update)
+    species_labels = list(updated_labels)
+    return species_labels
 
 def encode_labels(labels:list):
     le = lt.CustomLabelEncoder()
@@ -111,7 +75,6 @@ def encode_labels(labels:list):
 def save_le(le, le_path:str):
     with open(le_path, 'wb') as f:
         pickle.dump(le, f)
-        
 
 #________________________________________
 
@@ -138,6 +101,9 @@ class FeatureExtractor(nn.Module):
     return out 
 
 def get_model(cnn:str):
+    # change path of downloaded models if docker container runs
+    if is_docker():
+        os.environ['TORCH_HOME'] = '/treeclust/models/' #setting the environment variable for all model downloads
     if cnn == 'vgg':
         model = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
         model = FeatureExtractor(model)
