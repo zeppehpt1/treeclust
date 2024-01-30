@@ -5,14 +5,15 @@
 
     variables:
         DOCKER_DRIVER: overlay2
+        DOCKER_IMAGE_NAME: $DOCKER_REGISTRY_USER/treeclust # Make sure to replace with your image and repo name
 
     build:
         stage: build
         before_script:
         - echo “$DOCKER_REGISTRY_PASS”
         - echo “$DOCKER_REGISTRY_USER”
-        - echo “$DOCKER_IMAGE_NAME”
+        - echo "${DOCKER_IMAGE_NAME}"
         - echo "$DOCKER_REGISTRY_PASS" | docker login --username $DOCKER_REGISTRY_USER --password-stdin
         script:
-            - docker build --tag $DOCKER_IMAGE_NAME:latest . --file docker/dockerfile docker.io
-            - docker push $DOCKER_REGISTRY_USER/$DOCKER_IMAGE_NAME:latest
+            - docker build --tag ${DOCKER_IMAGE_NAME}:latest . --file docker/dockerfile docker.io
+            - docker push ${DOCKER_IMAGE_NAME}:latest
