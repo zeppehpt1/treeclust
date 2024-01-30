@@ -7,14 +7,13 @@
         DOCKER_DRIVER: overlay2
         DOCKER_IMAGE_NAME: $CI_REGISTRY_USER/treeclust # Make sure to replace with your image and repo name
 
-    before_script:
-        - echo “$CI_REGISTRY_PASSWORD”
-        - echo “$CI_REGISTRY_USER”
-        - echo "$CI_REGISTRY"
-        - docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin <<<$CI_REGISTRY_PASSWORD
-
     build:
         stage: build
+        before_script:
+        - echo “$DOCKER_REGISTRY_PASS”
+        - echo “$DOCKER_REGISTRY_USER”
+        - echo "$CI_REGISTRY_USER"
+        - echo "$DOCKER_REGISTRY_PASS" | docker login --username $DOCKER_REGISTRY_USER --password-stdin
         script:
             - docker build --tag $DOCKER_IMAGE_NAME:latest . --file docker/dockerfile
             - docker push $DOCKER_IMAGE_NAME:latest
