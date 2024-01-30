@@ -8,7 +8,7 @@
         DOCKER_IMAGE_NAME: $CI_REGISTRY_USER/treeclust # Make sure to replace with your image and repo name
 
     before_script:
-        - echo “$CI_REGISTRY_PASSWORD” | docker login -u “$CI_REGISTRY_USER” - password-stdin
+        - echo “$CI_REGISTRY_PASSWORD” | docker login -u “$CI_REGISTRY_USER” --password-stdin
 
     build:
         stage: build
