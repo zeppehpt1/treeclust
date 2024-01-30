@@ -5,7 +5,6 @@
 
     variables:
         DOCKER_DRIVER: overlay2
-        DOCKER_IMAGE_NAME: $DOCKER_REGISTRY_USER/treeclust # Make sure to replace with your image and repo name
 
     build:
         stage: build
