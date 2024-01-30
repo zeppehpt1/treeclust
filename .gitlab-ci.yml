@@ -1,17 +1,17 @@
     image: docker:latest
 
     services:
-    — docker:dind
+        - docker:dind
 
     variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_IMAGE_NAME: $CI_REGISTRY_USER/treeclust # Make sure to replace with your image and repo name
+        DOCKER_DRIVER: overlay2
+        DOCKER_IMAGE_NAME: $CI_REGISTRY_USER/treeclust # Make sure to replace with your image and repo name
 
     before_script:
-    — echo “$CI_REGISTRY_PASSWORD” | docker login -u “$CI_REGISTRY_USER” — password-stdin
+        — echo “$CI_REGISTRY_PASSWORD” | docker login -u “$CI_REGISTRY_USER” — password-stdin
 
     build:
-    stage: build
-    script:
-    — docker build --tag $DOCKER_IMAGE_NAME:latest . --file docker/dockerfile
-    — docker push $DOCKER_IMAGE_NAME:latest
+        stage: build
+        script:
+            — docker build --tag $DOCKER_IMAGE_NAME:latest . --file docker/dockerfile
+            — docker push $DOCKER_IMAGE_NAME:latest
