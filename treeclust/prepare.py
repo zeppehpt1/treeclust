@@ -16,14 +16,15 @@ from typing import Union, Tuple
 from tqdm import tqdm
 from numpy.typing import NDArray
 
+
 # TODO: clean up functions and align them to coding convention PEP
-def highest_pixel_count(img_array:NDArray) ->int:
+def highest_pixel_count(img_array: NDArray) -> int:
     pixel, n_of_pixels = np.unique(img_array, return_counts=True)
     highest_pixel_value = pixel[np.argsort(-n_of_pixels)]
     if highest_pixel_value[0] == 0 and len(highest_pixel_value) == 1:
         return 9999
     index = 0
-    forbidden_values = {0,1,9} # discard forest floor as well
+    forbidden_values = {0, 1, 9}  # discard forest floor as well
     while True:
         if highest_pixel_value[index] not in forbidden_values:
             if math.isnan(highest_pixel_value[index]):
@@ -34,125 +35,169 @@ def highest_pixel_count(img_array:NDArray) ->int:
             return 9999
         index += 1
 
-def remove_images_outside_of_gt_area(files:list):
+
+def remove_images_outside_of_gt_area(files: list):
     for path in files:
-        number = path.stem.split('_')[5]
+        number = path.stem.split("_")[5]
         if number == 9999:
             os.remove(path)
+
 
 def get_centroid(polygon):
     centroid_str = polygon.centroid.wkt
     return shapely.wkt.loads(centroid_str)
 
+
 def point_inside_shape(point, polygon) -> bool:
     point = gpd.GeoDataFrame(geometry=[point])
-    return(point.within(polygon).iloc[0])
+    return point.within(polygon).iloc[0]
+
 
 def rotated_square(cx, cy, size=70, degrees=0):
-    """ Calculate coordinates of a rotated square or normal one centered at 'cx, cy'
-        given its 'size' and rotation by 'degrees' about its center.
+    """Calculate coordinates of a rotated square or normal one centered at 'cx, cy'
+    given its 'size' and rotation by 'degrees' about its center.
     """
-    h = size/2
-    l, r, b, t = cx-h, cx+h, cy-h, cy+h
+    h = size / 2
+    l, r, b, t = cx - h, cx + h, cy - h, cy + h
     a = radians(degrees)
     cosa, sina = cos(a), sin(a)
     pts = [(l, b), (l, t), (r, t), (r, b)]
-    return [(( (x-cx)*cosa + (y-cy)*sina) + cx,
-             (-(x-cx)*sina + (y-cy)*cosa) + cy) for x, y in pts]
+    return [
+        (
+            ((x - cx) * cosa + (y - cy) * sina) + cx,
+            (-(x - cx) * sina + (y - cy) * cosa) + cy,
+        )
+        for x, y in pts
+    ]
 
-def make_shapely_points(points:list) -> list:
+
+def make_shapely_points(points: list) -> list:
     return [geometry.Point(point) for point in points]
 
-def get_inner_square_corner_coordinates_from_polygon(step_size:float, polygon) -> list:
+
+def get_inner_square_corner_coordinates_from_polygon(step_size: float, polygon) -> list:
     result_points = []
-    square_size = 70 # has enough buffer and suitable for all crowns
+    square_size = 70  # has enough buffer and suitable for all crowns
     centroid = get_centroid(polygon)
-    square_coordinates = rotated_square(centroid.x,centroid.y,square_size,degrees=0) # initial square size
-    while(square_size != 0):
+    square_coordinates = rotated_square(
+        centroid.x, centroid.y, square_size, degrees=0
+    )  # initial square size
+    while square_size != 0:
         result_points = square_coordinates
-        if all(point_inside_shape(geometry.Point(point),polygon) for point in square_coordinates):
+        if all(
+            point_inside_shape(geometry.Point(point), polygon)
+            for point in square_coordinates
+        ):
             return result_points
-        else: 
+        else:
             # rectangle is outside of polygon
-            square_coordinates = rotated_square(centroid.x,centroid.y,square_size,degrees=0)
+            square_coordinates = rotated_square(
+                centroid.x, centroid.y, square_size, degrees=0
+            )
             square_size -= step_size
-            
-def points_to_polygon(points:list) -> list:
+
+
+def points_to_polygon(points: list) -> list:
     polygon_list = make_shapely_points(points)
     return geometry.Polygon([[p.x, p.y] for p in polygon_list])
 
-def visualize_two_polygons(first_polygon, second_polygon):
-    poly_gdf = gpd.GeoDataFrame({"id": [1,2], "geometry": [first_polygon,second_polygon]}, geometry="geometry")
-    poly_gdf.plot(facecolor="None", edgecolor="red")
-    
-def get_geo_features(gdf:GeoDataFrame) -> json:
-    """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
-    return [json.loads(gdf.to_json())['features'][0]['geometry']]
 
-def remove_none_rows(gdf:GeoDataFrame) -> GeoDataFrame:
-    gdf = gdf.replace(to_replace='None', value=np.nan).dropna()
+def visualize_two_polygons(first_polygon, second_polygon):
+    poly_gdf = gpd.GeoDataFrame(
+        {"id": [1, 2], "geometry": [first_polygon, second_polygon]}, geometry="geometry"
+    )
+    poly_gdf.plot(facecolor="None", edgecolor="red")
+
+
+def get_geo_features(gdf: GeoDataFrame) -> json:
+    """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
+    return [json.loads(gdf.to_json())["features"][0]["geometry"]]
+
+
+def remove_none_rows(gdf: GeoDataFrame) -> GeoDataFrame:
+    gdf = gdf.replace(to_replace="None", value=np.nan).dropna()
     gdf = gdf.reset_index(drop=True)
     return gdf
 
-def clip_crown_from_raster(img_path:str, mask_path:str, polygon, out_file_suffix:str, make_squares:bool):
+
+def clip_crown_from_raster(
+    img_path: str, mask_path: str, polygon, out_file_suffix: str, make_squares: bool
+):
     # includes gt mask data
     # TODO: create a flag to switch between gt and no gt
     # TODO: Adjust Path
     # TODO: remove or add extra functionality to include gt or not, in dev right now
     # get ground truth of ortho mask (manually labeled image)
     ortho_mask_data = rasterio.open(mask_path)
-    epsg = int(str(ortho_mask_data.crs).split(':')[1])
+    epsg = int(str(ortho_mask_data.crs).split(":")[1])
     # rasterio wants coordinates as a geodata geojson format for parsing
-    geo = gpd.GeoDataFrame({'geometry':polygon},index=[0],crs=epsg)
+    geo = gpd.GeoDataFrame({"geometry": polygon}, index=[0], crs=epsg)
     geo = geo.to_crs(epsg=epsg)
     coords = get_geo_features(geo)
     # define output params
-    ortho_mask_out, out_transform = mask(ortho_mask_data,shapes=coords,crop=True)
+    ortho_mask_out, out_transform = mask(ortho_mask_data, shapes=coords, crop=True)
     out_meta = ortho_mask_data.meta.copy()
-    out_meta.update({
-        "driver":"PNG",
-        "height": ortho_mask_out.shape[1],
-        "width": ortho_mask_out.shape[2],
-        "transform": out_transform,
-        "crs":epsg
-    })
-    #highest pixel count (excluding black pixels) of ground truth area
+    out_meta.update(
+        {
+            "driver": "PNG",
+            "height": ortho_mask_out.shape[1],
+            "width": ortho_mask_out.shape[2],
+            "transform": out_transform,
+            "crs": epsg,
+        }
+    )
+    # highest pixel count (excluding black pixels) of ground truth area
     data_array = ortho_mask_out
-    highest_pixel_value = highest_pixel_count(data_array) # ensures to discard black and white majority of pixels
+    highest_pixel_value = highest_pixel_count(
+        data_array
+    )  # ensures to discard black and white majority of pixels
     # check for polygons outside of ground truth area and invalid ones (black, white and forest floor pixels are discarded)
     if highest_pixel_value == 9999 or math.isnan(highest_pixel_value):
         return
-    
+
     # get original polygon mask
     data = rasterio.open(img_path)
-    epsg = int(str(data.crs).split(':')[1])
+    epsg = int(str(data.crs).split(":")[1])
     # rasterio wants coordinates as a geodata geojson format for parsing
-    geo = gpd.GeoDataFrame({'geometry':polygon},index=[0],crs=epsg)
+    geo = gpd.GeoDataFrame({"geometry": polygon}, index=[0], crs=epsg)
     geo = geo.to_crs(epsg=epsg)
     coords = get_geo_features(geo)
     # define output params
-    out_img, out_transform = mask(data,shapes=coords,crop=True)
+    out_img, out_transform = mask(data, shapes=coords, crop=True)
     out_meta = data.meta.copy()
-    out_meta.update({
-        "driver":"PNG",
-        "height": out_img.shape[1],
-        "width": out_img.shape[2],
-        "transform": out_transform,
-        "crs":epsg
-    })
-    
-    shape = 'polygon'
+    out_meta.update(
+        {
+            "driver": "PNG",
+            "height": out_img.shape[1],
+            "width": out_img.shape[2],
+            "transform": out_transform,
+            "crs": epsg,
+        }
+    )
+
+    shape = "polygon"
     if make_squares == True:
-        shape = 'square'
-    
+        shape = "square"
+
     # saving poly clip and attatch highest pixel count value to filename
-    out_dir = Path(img_path).parent.parent / Path('pred_' + shape + '_clipped_raster_files')
+    out_dir = Path(img_path).parent.parent / Path(
+        "pred_" + shape + "_clipped_raster_files"
+    )
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    output_path = out_dir / Path(str(Path(img_path).stem) + out_file_suffix + str(highest_pixel_value) + '.png')
-    with rasterio.open(output_path,"w",**out_meta) as dest:
+    output_path = out_dir / Path(
+        str(Path(img_path).stem) + out_file_suffix + str(highest_pixel_value) + ".png"
+    )
+    with rasterio.open(output_path, "w", **out_meta) as dest:
         dest.write(out_img)
 
-def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFrame, mask_path: Union[str, Path], make_squares, step_size):
+
+def clip_multiple_crowns_from_raster(
+    img_path: Union[str, Path],
+    crowns: GeoDataFrame,
+    mask_path: Union[str, Path],
+    make_squares,
+    step_size,
+):
     """Create multiple png files of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon.
 
     Args:
@@ -161,15 +206,24 @@ def clip_multiple_crowns_from_raster(img_path: Union[str,Path],crowns:GeoDataFra
         make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
         step_size: Affects only inner square polygons.
     """
-    
+
     if make_squares == True:
-        crowns = get_gdf_with_inner_square_polygons(crowns,step_size)
-    for index in (pbar := tqdm(range(len(crowns['geometry'])), leave=False)):
+        crowns = get_gdf_with_inner_square_polygons(crowns, step_size)
+    for index in (pbar := tqdm(range(len(crowns["geometry"])), leave=False)):
         pbar.set_description(f"Processing number {index}")
-        file_suffix = '_mask_{0:0>4}_'.format(index)
-        clip_crown_from_raster(img_path, mask_path, crowns['geometry'][index], file_suffix, make_squares)
-        
-def clip_crowns_with_gt_mask(img_path: Union[str, Path], crowns: GeoDataFrame, mask_path: Union[str, Path], make_squares, step_size):
+        file_suffix = "_mask_{0:0>4}_".format(index)
+        clip_crown_from_raster(
+            img_path, mask_path, crowns["geometry"][index], file_suffix, make_squares
+        )
+
+
+def clip_crowns_with_gt_mask(
+    img_path: Union[str, Path],
+    crowns: GeoDataFrame,
+    mask_path: Union[str, Path],
+    make_squares,
+    step_size,
+):
     """Create multiple png files of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon. Includes the ground truth value of the provided mask image for analysis.
 
     Args:
@@ -179,15 +233,24 @@ def clip_crowns_with_gt_mask(img_path: Union[str, Path], crowns: GeoDataFrame, m
         make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
         step_size: Affects only inner square polygons.
     """
-    
+
     if make_squares == True:
         crowns = get_gdf_with_inner_square_polygons(crowns, step_size)
-    for index in (pbar := tqdm(range(len(crowns['geometry'])), leave=False)):
+    for index in (pbar := tqdm(range(len(crowns["geometry"])), leave=False)):
         pbar.set_description(f"Processing number {index}")
-        file_suffix = '_mask_{0:0>4}_'.format(index)
-        clip_crown_from_raster(img_path, mask_path, crowns['geometry'][index],file_suffix, make_squares)
+        file_suffix = "_mask_{0:0>4}_".format(index)
+        clip_crown_from_raster(
+            img_path, mask_path, crowns["geometry"][index], file_suffix, make_squares
+        )
 
-def clip_crown_sets_with_gt_masks(imgs_dir: Union[str, Path], crown_dir, mask_dir: Union[str, Path], make_squares, step_size):
+
+def clip_crown_sets_with_gt_masks(
+    imgs_dir: Union[str, Path],
+    crown_dir,
+    mask_dir: Union[str, Path],
+    make_squares,
+    step_size,
+):
     """Creates multiple png file sets of tree crowns based on polygons. Clips either the whole tree crown or inner square of the polygon. Includes the ground truth value of the provided mask image for analysis.
 
     Args:
@@ -197,36 +260,48 @@ def clip_crown_sets_with_gt_masks(imgs_dir: Union[str, Path], crown_dir, mask_di
         make_squares (bool, optional): Defaults to False. Set to True if you want to get the most inner square of the polygons.
         step_size: Affects only inner square polygons when make_squares is set to TRUE.
     """
-    
-    img_files = glob.glob(imgs_dir + '*.tif')
-    crown_files = glob.glob(crown_dir + '*.gpkg')
-    mask_files = glob.glob(mask_dir + '*.tif')
-    
+
+    img_files = glob.glob(imgs_dir + "*.tif")
+    crown_files = glob.glob(crown_dir + "*.gpkg")
+    mask_files = glob.glob(mask_dir + "*.tif")
+
     [folder.sort() for folder in [img_files, crown_files, mask_files]]
-    
+
     assert len(img_files) == len(crown_files) == len(mask_files)
-    
+
     make_squares = make_squares
     step_size = step_size
     for img, crown_file, mask in zip(img_files, crown_files, mask_files):
         crowns = gpd.read_file(crown_file)
         clip_crowns_with_gt_mask(img, crowns, mask, make_squares, step_size)
 
-def combine_clipped_crowns(clipped_crowns_dir:str):
-    clipped_crown_sets = glob.glob(clipped_crowns_dir + '/CFB*')
-    all_clipped_crowns_dir = clipped_crowns_dir.parent / 'all_crowns'
+
+def combine_clipped_crowns(clipped_crowns_dir: str):
+    clipped_crown_sets = glob.glob(clipped_crowns_dir + "/CFB*")
+    all_clipped_crowns_dir = clipped_crowns_dir.parent / "all_crowns"
     Path(all_clipped_crowns_dir).mkdir(parents=True, exist_ok=True)
     print(all_clipped_crowns_dir)
-    clipped_crown_files = [glob.glob(clipped_set + '/*.png') for clipped_set in clipped_crown_sets]
+    clipped_crown_files = [
+        glob.glob(clipped_set + "/*.png") for clipped_set in clipped_crown_sets
+    ]
     print(len(clipped_crown_files))
 
-def get_gdf_with_inner_square_polygons(crowns:GeoDataFrame, step_size=1) -> GeoDataFrame:
-    crowns['rec_poly'] = [get_inner_square_corner_coordinates_from_polygon(step_size,polygon) for polygon in crowns['geometry']]
-    crowns = remove_none_rows(crowns) # very small squares
-    crowns['rec_poly'] = [points_to_polygon(rec_points) for rec_points in crowns['rec_poly']]
-    crowns = crowns.drop(columns='geometry')
-    crowns = crowns.rename(columns={"rec_poly":"geometry"})
+
+def get_gdf_with_inner_square_polygons(
+    crowns: GeoDataFrame, step_size=1
+) -> GeoDataFrame:
+    crowns["rec_poly"] = [
+        get_inner_square_corner_coordinates_from_polygon(step_size, polygon)
+        for polygon in crowns["geometry"]
+    ]
+    crowns = remove_none_rows(crowns)  # very small squares
+    crowns["rec_poly"] = [
+        points_to_polygon(rec_points) for rec_points in crowns["rec_poly"]
+    ]
+    crowns = crowns.drop(columns="geometry")
+    crowns = crowns.rename(columns={"rec_poly": "geometry"})
     return crowns
+
 
 if __name__ == "__main__":
     print("write a test case or something")

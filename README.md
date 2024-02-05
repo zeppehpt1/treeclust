@@ -83,4 +83,3 @@ You can then evaluate your results by examining the final `.pickle` file in the 
 ## Non-Docker setup
 
 Will be added soon.
-
