@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import umap as up
 import pickle
+import warnings
+warnings.filterwarnings("ignore", message="n_jobs value -1 overridden to 1 by setting random_state. Use no seed for parallelism.")
 
 from typing import Tuple
 from numpy.typing import NDArray
@@ -31,7 +33,6 @@ from collections import Counter
 
 import label_tools as lt
 from constants import NUMBER_OF_CLASSES
-
 
 def load_features(features_path: str) -> Tuple[list, NDArray, list]:
     with open(features_path, "rb") as f:

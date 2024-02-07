@@ -1,5 +1,10 @@
 # treeclust
 
+<p>
+<a href="https://github.com/zeppehpt1/treeclust/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
+<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+</p>
+
 Python package for automatic processing and clustering of tree species using several different image preprocessing, dimensionality reduction and clustering techniques. The current implementation works with annotated data to take advantage of tree species clustering capabilities based on high-resolution RGB image data. However, with some adjustments, the code can also be used to cluster tree species when tree species labels are not available.
 
 The data used for training the tree detection and delineation model, as well as the data used for the analysis pipeline, can be made available upon request. Please do not hesitate to contact me if you have any questions about the data or individual parts of the process.

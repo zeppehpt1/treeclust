@@ -3,8 +3,8 @@ FROM python:3.8
 
 WORKDIR /treeclust
 
-# add req.txt
-COPY requirements.txt .
+# Add dependencies and channel information
+COPY environment.yaml .
 
 # Install base utilities for conda and opencv
 RUN apt-get update \
@@ -23,13 +23,10 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 ENV PATH=$CONDA_DIR/bin:$PATH
 
 RUN conda config --add channels conda-forge \
-    && conda config --add channels pytorch \
-    && conda install mamba pip \
-    && pip install fuzzy-c-means \
-    && ls \
-    && mamba install --file requirements.txt
+    && conda install mamba \
+    && mamba env create -f environment.yaml
 
 # Add files
 COPY . .
 
-CMD ["python", "treeclust/__main__.py"]
+CMD ["conda", "run", "-n", "treeclust", "python", "treeclust/__main__.py"]

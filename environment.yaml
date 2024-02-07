@@ -1,0 +1,36 @@
+name: treeclust
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.8
+  - pip
+  - fiona
+  - geocube
+  - geopandas
+  - joblib
+  - libjpeg-turbo
+  - libpng
+  - matplotlib
+  - numpy
+  - opencv # conda opencv
+  - pandas
+  - pillow
+  - pyarrow
+  - pytest
+  - python-dotenv
+  - rasterio
+  - rioxarray
+  - scikit-learn # conda scikit-learn
+  - scipy
+  - seaborn
+  - shapely
+  - scikit-image
+  - pytorch=2.1.2 # conda pytorch==2.1.2
+  - torchvision=0.16.2
+  - tqdm
+  - umap-learn # conda umap-learn
+  - yellowbrick
+  - pip:
+    - fuzzy-c-means
