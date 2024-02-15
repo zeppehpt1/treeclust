@@ -13,6 +13,8 @@ The data used for training the tree detection and delineation model, as well as 
 
 Image files (orthomosaics), corresponding shapefiles with information about the location and species of the trees, and corresponding ground truth mask image files, if applicable.
 
+**Note**: The whole process is primarily tested under Linux, but should also work under other operating systems. You may need to use different file paths and working with conda could be different.
+
 ## Getting started
 
 Preliminary Information:
@@ -87,4 +89,35 @@ You can then evaluate your results by examining the final `.pickle` file in the 
 
 ## Non-Docker setup
 
-Will be added soon.
+Setting up folders and the environment:
+
+```bash
+mkdir treeclust
+cd treeclust
+git clone https://github.com/zeppehpt1/treeclust.git
+conda env create --file envrionment.yaml # or use mamba
+mkdir data
+```
+
+Now insert your dataset into the newly created data folder. You can then change the parameters in the `config.env` file as required.
+
+Activate the environment and run the code:
+
+```bash
+conda activate treeclust
+python treeclust/__main__.py
+```
+
+**Note**: When using conda, I strongly recommend checking and activating the libmamba solver if it is not selected.
+
+```bash
+conda config --show-sources
+conda config --set solver libmamba
+conda config --set solver classic # reverts to default solver
+```
+
+## TODOs
+
+- [ ] Refactor code
+- [ ] Implement tests
+- [ ] Improve the separation of clusters between different deciduous tree species
