@@ -121,3 +121,4 @@ conda config --set solver classic # reverts to default solver
 - [ ] Refactor code
 - [ ] Implement tests
 - [ ] Improve the separation of clusters between different deciduous tree species
+- [ ] Reduce Docker image size
